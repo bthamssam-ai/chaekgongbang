@@ -124,6 +124,8 @@ table.wl small{color:var(--muted)}
 #pane-text.drop{outline:2px dashed var(--accent);outline-offset:-6px}
 .spread.gray canvas.pg{filter:grayscale(1)}
 .crop{display:flex;flex-direction:column;gap:8px;align-items:center}
+.spr{display:flex;flex-direction:column;gap:8px}.spr h4{margin:8px 0 0;font-size:13px}.spr canvas{max-width:100%;border:1px solid #c9d2d0;touch-action:none;background:#fff}
+.sp-cs{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.sp-c{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid #c9d2d0;border-radius:6px}
 #cp{touch-action:none;cursor:crosshair;background:#777;display:block}
 .pick .tiles{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));max-height:50vh}
 .pick .tile img{height:76px}
@@ -268,13 +270,16 @@ label.mchk{align-items:flex-start;line-height:1.5;margin:0 0 6px} label.mchk inp
         <p class="note">미리캔버스 같은 다른 도구로 표지를 만들 때는 표지 틀 PNG(300dpi, 투명 바탕)를 맨 아래에 깔고 그 위에 그린 뒤, 저장하기 전에 틀을 지워 주세요.</p>
       </div>
       <div class="grp"><h2>표지 그림</h2>
-        <div class="bar"><label class="b">완성 표지 올리기 (PDF·JPG·PNG)<input type="file" id="in-cover" accept="image/*,.pdf,application/pdf"></label><button class="b" id="bt-cover-x">지우기</button></div>
+        <div class="bar"><label class="b">완성 표지 올리기 (PDF·JPG·PNG)<input type="file" id="in-cover" accept="image/*,.pdf,application/pdf"></label><button class="b" id="bt-spread">펼침 표지 가져오기</button><button class="b" id="bt-cover-x">지우기</button></div>
+        <p class="note">학생이 뒤날개·뒤표지·기존 책등·앞표지·앞날개를 JPG 한 장으로 낸 표지는 '펼침 표지 가져오기'로 다섯 면을 나눠 지금 규격(책등·날개·재단 여백)으로 다시 조립합니다.</p>
         <div id="cc-box" hidden><table class="k" id="cc-table"></table><ul class="chk" id="cc-list" style="margin-top:6px"></ul></div>
+        <div id="asm-box" hidden><p class="note" id="asm-msg"></p><div class="bar"><button class="b p" id="bt-respine">새 책등으로 다시 조립</button></div></div>
+        <div class="bar"><button class="b p" id="bt-cset">표지 PDF와 사양 JSON 함께 저장</button></div><p class="note" id="cset-msg"></p>
         <p class="note">올린 표지의 크기에서 책등 폭을 거꾸로 구해 지금 내지 쪽수와 맞는지 봅니다. 표지 파일에 사양(쪽수·책등)이 적혀 있으면 그것도 대조합니다. PDF 표지는 그림으로 바꿔 미리보기와 가제본에 씁니다. 부크크에는 받은 PDF를 그대로 올리면 됩니다.</p>
         <p class="note">제출 탭의 가제본 PDF에는 이 그림의 앞표지와 뒤표지가 들어갑니다.</p>
         <p class="note">날개, 뒤표지, 책등, 앞표지, 날개 순서로 펼친 한 장짜리 그림을 올립니다. 부크크는 표지를 JPG나 PDF(300dpi, 100MB 이하)로 받고 PDF를 권장합니다. 표지에 부크크 로고를 직접 넣지 않았다면 부크크 화면에서 로고를 골라 넣습니다.</p>
       </div>
-      <div class="grp"><h2>표지 규격 (mm)</h2><div id="g-cover0" class="bar"></div><div class="row" id="g-cover"></div><div id="g-cover-fit"></div>
+      <div class="grp"><h2>표지 규격 (mm)</h2><div id="g-cover0" class="bar"></div><div class="row" id="g-cover"></div><div id="g-cover-fit"></div><div class="bar"><label class="b">제출할 내지 PDF 올려 쪽수 읽기<input type="file" id="in-ipdf" accept="application/pdf,.pdf"></label><button class="b" id="bt-ipdf-x" hidden>PDF 기준 지우기</button></div><p class="note" id="cv-pages-note"></p><p class="note" id="cv-delta-note" hidden></p>
         <p class="note">책등은 부크크 책 만들기 화면과 같은 계산식(쪽수 ÷ 2 × 종이 두께 + 1.6mm)으로 구합니다. 미색·백색모조지 100g은 0.11mm, 80g은 0.09mm입니다. 부크크는 쪽수가 많으면 80g으로 바꾸므로, 부크크 도서형태 화면의 내지 종이와 두께를 보고 다르면 내지 종이를 고르거나 책등을 직접 넣어 주세요.</p>
         <p class="note">미리보기의 파란 점선은 부크크 규격체크의 권장 여백(재단선 안쪽 5mm)입니다. 글자와 중요한 그림은 그 안에 두세요. 날개가 있으면 붉게 칠한 3mm까지 앞·뒤표지 그림을 이어서 그려야 합니다. 날개 폭은 부크크 규격체크와 같은 100mm입니다.</p>
       </div>
@@ -1133,7 +1138,7 @@ const DEF = () => ({
   style:'prose',
   pub:{publisher:'한건희', house:'주식회사 부크크', reg:'2014.07.15.(제2014-16호)', addr:'서울특별시 금천구 가산디지털1로 119 SK트윈테크타워 A동 305-7호', tel:'1670-8316', email:'info@bookk.co.kr', web:'www.bookk.co.kr', notice:'본 책은 저작자의 지적 재산으로서 무단 전재와 복제를 금합니다.'},
   fonts:{body:'nm', head:'nmb', bold:'auto'},
-  cover:{flap:true, flapW:100, bleed:3, paper:'auto', spine:'', fit:'stretch'},
+  cover:{flap:true, flapW:100, bleed:3, paper:'auto', spine:'', pages:'', pagesSrc:'', pdf:null, last:null, fit:'stretch'},
   pics:{},                                                  // 사진마다 {name: 파일 이름, crop: {x,y,w,h} 원본에서 쓸 영역(0~1)}
   photo:{gray:false},                                       // 본문 사진을 흑백으로 바꿔 PDF에 넣기
   proof:{mode:'booklet', paper:'A4', sig:'0', fit:'actual'}, // 가제본 PDF
@@ -1983,13 +1988,15 @@ async function cropDialog(id){
 }
 const PAPERS = {y100:['미색모조지 100g',0.11], y80:['미색모조지 80g',0.09], w100:['백색모조지 100g',0.11], w80:['백색모조지 80g',0.09]};
 const fmt = (v, d=3) => String(+(+v).toFixed(d));
-function paperKey(n){ if(PAPERS[S.cover.paper]) return S.cover.paper; return n < 400 ? 'y100' : 'y80'; }
-function coverDims(){
-  const c = S.cover, P = S.page, n = BOOK.pages.length, pk = paperKey(n), t = PAPERS[pk][1];
+function paperKey(n, paper){ const p = paper === undefined ? S.cover.paper : paper; if(PAPERS[p]) return p; return n < 400 ? 'y100' : 'y80'; }
+function coverPages(){ const m = parseInt(S.cover.pages, 10); return m > 0 ? m : BOOK.pages.length; }   // 책등 계산에 쓰는 쪽수: 직접 넣은 최종 PDF 쪽수, 비면 웹 조판 쪽수
+function coverDims(ov){ // ov: 가져오기 창의 임시 출력 규격 {page:{w,h}, flap, flapW, bleed, pages, paper}. 없으면 지금 작업의 설정
+  ov = ov || {}; const has = k => Object.prototype.hasOwnProperty.call(ov, k);
+  const c = S.cover, P = ov.page || S.page, pg = has('pages') ? (parseInt(ov.pages, 10) > 0 ? parseInt(ov.pages, 10) : BOOK.pages.length) : coverPages(), n = pg, pk = paperKey(n, has('paper') ? ov.paper : undefined), t = PAPERS[pk][1];
   const est = Math.round((n/2*t + 1.6)*1000)/1000;  // 부크크 책 만들기 화면의 두께 계산식
   const spine = parseFloat(c.spine) > 0 ? parseFloat(c.spine) : est;
-  const flap = c.flap ? +c.flapW : 0, bl = +c.bleed;
-  return {est, spine, flap, bl, pk, t, W: bl*2 + flap*2 + P.w*2 + spine, H: P.h + bl*2};
+  const flap = (has('flap') ? ov.flap : c.flap) ? +(has('flapW') ? ov.flapW : c.flapW) : 0, bl = +(has('bleed') ? ov.bleed : c.bleed);
+  return {est, spine, flap, bl, pk, t, n, P, W: bl*2 + flap*2 + P.w*2 + spine, H: P.h + bl*2};
 }
 function comp(d){ const P = S.page, r = v => +(+v).toFixed(3), b = r(P.w + (d.flap ? 0 : d.bl)), f = d.flap ? r(d.flap + d.bl) : 0;
   return (f ? f + '(날개)+' : '') + b + '(뒤표지)+' + r(d.spine) + '(책등)+' + b + '(앞표지)' + (f ? '+' + f + '(날개)' : ''); }
@@ -2040,7 +2047,7 @@ const r3 = v => Math.round(v*1000)/1000, px300 = mm => Math.round(mm/25.4*300);
 const isoSeoul = (t = Date.now()) => new Date(t + 9*3600e3).toISOString().slice(0, 19) + '+09:00';
 const sameDims = (a, d, n) => a && a.pages === n && Math.abs(a.spine - d.spine) < 0.005 && Math.abs(a.W - d.W) < 0.005 && Math.abs(a.H - d.H) < 0.005;
 function spineState(){ // temp: 확정 전, fixed: 확정한 값 그대로, changed: 확정한 뒤 쪽수·표지 크기가 바뀜
-  const d = coverDims(), n = BOOK.pages.length, f = CS().fix;
+  const d = coverDims(), n = coverPages(), f = CS().fix;
   return {st: !f ? 'temp' : sameDims(f, d, n) ? 'fixed' : 'changed', d, n, f};
 }
 function coverSpec(){
@@ -2055,6 +2062,7 @@ function coverSpec(){
     cover:{width:r3(d.W), height:r3(d.H), bleed:d.bl, flap:d.flap, flapWrap:d.flap ? 3 : 0, safe:5, dpi:300, px:{w:px300(d.W), h:px300(d.H)},
       cut:{left:d.bl, right:r3(d.W - d.bl), top:d.bl, bottom:r3(d.H - d.bl)}, folds:xs.slice(1, -1).map(r3),
       panels:parts.map(([part, name], i) => ({part, name, x:r3(xs[i]), w:r3(xs[i+1] - xs[i])}))}};
+  sp.review = {only:n < 50 || n > 978, reason:n < 50 || n > 978 ? '부크크 종이책 범위(50~978쪽) 밖: ' + n + '쪽. 책등은 임시이며 검수용 임시본입니다.' : ''};
   sp.line = specLine(sp);
   return sp;
 }
@@ -2062,7 +2070,7 @@ function specLine(sp){
   const q = v => String(v).replace(/\s+/g, '_');
   return 'ONNARAE-COVER v1 id=' + q(sp.book.id || '-') + ' rev=' + sp.book.revision + ' pages=' + sp.interior.pages + ' trim=' + sp.interior.trimW + 'x' + sp.interior.trimH
     + ' paper=' + sp.interior.paper.key + ' spine=' + sp.spine.mm.toFixed(2) + ' flap=' + sp.cover.flap + ' bleed=' + sp.cover.bleed
-    + ' size=' + sp.cover.width.toFixed(2) + 'x' + sp.cover.height.toFixed(2) + ' provisional=' + (sp.spine.provisional ? 1 : 0);
+    + ' size=' + sp.cover.width.toFixed(2) + 'x' + sp.cover.height.toFixed(2) + ' provisional=' + (sp.spine.provisional ? 1 : 0) + (sp.review && sp.review.only ? ' review=1' : '');
 }
 function parseSpecLine(t){ // "ONNARAE-COVER v1 id=… pages=120 …" → 값들. 없으면 null
   const m = String(t || '').match(/ONNARAE-COVER\s+v(\d+)((?:\s+[a-z]+=[^\s"')<>\]]+)+)/i); if(!m) return null;
@@ -2132,7 +2140,7 @@ async function readCover(f){ // 표지 파일 → {cover:{dataUrl,img,w,h}, info
 }
 function coverCheck(){ // 올린 표지를 지금 내지와 대조한다
   if(!COVER) return null;
-  const d = coverDims(), P = S.page, n = BOOK.pages.length, ci = CS().cover || {}, sp = ci.spec || null, R = {rows:[], items:[], bad:0};
+  const d = coverDims(), P = S.page, n = coverPages(), ci = CS().cover || {}, sp = ci.spec || null, R = {rows:[], items:[], bad:0};
   const add = (st, html) => { R.items.push([st, html]); if(st === 'warn') R.bad++; };
   R.rows.push(['올린 표지', esc(ci.name || '이름 모름') + (ci.kind ? ' (' + esc(ci.kind) + (ci.pdfPages > 1 ? ', ' + ci.pdfPages + '쪽 중 첫 쪽' : '') + ')' : '')]);
   if(COVER.w/COVER.h < 1.2){ R.front = true;
@@ -2186,8 +2194,268 @@ async function useCoverFile(f){
   const {cover, info} = await readCover(f); COVER = cover; CS().cover = info; refresh(true);
   const R = coverCheck(); toast('표지를 올렸습니다' + (R && R.bad ? '. 확인할 것 ' + R.bad + '개가 있습니다(표지 탭).' : R && R.spine !== undefined ? '. 책등이 지금 내지와 맞습니다.' : '.'), 6000);
 }
+/* ---------- 펼침 표지 가져오기 ----------
+   학생이 뒤날개 / 뒤표지 / 기존 책등 / 앞표지 / 앞날개 순서로 한 장에 낸 표지를 세로 경계선 4개로 다섯 면으로 나눈다.
+   ① 원본 나누기(경계 4개, 그림에서 찾아 제안하고 교사가 고침)와 ② 출력 규격(판형·날개·재단 여백·쪽수·종이)은 따로다.
+   경계는 원본 그림 기준 px라서 출력 규격을 바꿔도 그대로이고, 규격에 맞춰 배치만 다시 계산한다.
+   창 안에서 바꾼 규격은 '표지에 적용'을 눌러야 작업에 저장되고, 취소하면 아무것도 바뀌지 않는다.
+   결과는 300dpi 펼침 표지 한 장으로 COVER에 넣으므로 점검·가제본·표지 PDF/JPG 저장은 기존 코드를 그대로 쓴다.
+   원본 그림과 경계선은 창을 닫아도 이 화면을 연 동안(세션)만 기억한다. */
+const SPR = {img:null, w:0, h:0, name:'', b:[0, 0, 0, 0], front:null, back:null, flap:null, spineColor:'#1f3a5f', spineText:false, avg:new Map(), flapChoice:null, est:[false, false, false, false]};
+const SPR_MODES = [['smart', '글이 잘리지 않게 자동 (날개 권장)'], ['bleed', '재단 여백까지 채우기 (조금 확대)'], ['trim', '판형에 맞추기 (여백은 가장자리 색)'], ['fit', '전체 보이기 (남는 곳은 가장자리 색)']];
+const sprOpt = (mode) => ({mode:mode || 'bleed', zoom:100, ox:0, oy:0});
+function sprGeom(w, h, pw, ph, bl, fl){ // 판형·날개·재단 여백을 가정했을 때 경계 4개 (맞지 않으면 null)
+  const s = h/(ph + 2*bl), e = (bl + fl)*s, bw = pw*s, sp = w - 2*e - 2*bw;
+  return sp > 0.8*s && sp < 60*s ? [e, e + bw, e + bw + sp, e + 2*bw + sp].map(Math.round) : null;
+}
+function sprDetect(img){ // 그림에서 세로 경계를 찾는다 → {b:[4], est:[4]} (est: 뚜렷한 경계를 못 찾아 추정한 위치)
+  // 모든 줄에서 일관되게 색이 바뀌는 곳을 후보로 잡는다. 후보 기준은 그림 안의 가장 센 경계(검은 책등 등)가 아니라 절대 대비라서 연한 날개 경계도 남는다.
+  // 앞뒤 표지 폭이 같고 날개 폭이 같으며 책등이 얇은 조합을 고른다. 판형 비율로 어림한 위치는 약한 후보라 뽑히면 est로 표시한다.
+  const W = img.naturalWidth, H = img.naturalHeight, tw = Math.min(W, 2400), th = 48, sx = W/tw, k = Math.max(2, Math.round(tw/600));
+  const cv = document.createElement('canvas'); cv.width = tw; cv.height = th; const g = cv.getContext('2d', {willReadFrequently:true}); g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, tw, th);
+  const px = g.getImageData(0, 0, tw, th).data, e = new Float32Array(tw), df = new Array(th);
+  for(let x = k; x <= tw - k; x++){
+    for(let y = 0; y < th; y++){ let d = 0; for(let c = 0; c < 3; c++){ let l = 0, r = 0; for(let j = 0; j < k; j++){ l += px[(y*tw + x - 1 - j)*4 + c]; r += px[(y*tw + x + j)*4 + c]; } d += Math.abs(l - r)/k; } df[y] = d; }
+    df.sort((a, b) => a - b); e[x] = df[th >> 1]*0.7 + df[Math.floor(th*0.75)]*0.3;
+  }
+  const sOf = v => Math.max(0, Math.min(1, (v - 12)/24)), CLEAR = 0.35;   // 대비 12 이하는 잡음, 36 이상은 확실한 경계(연한 날개 경계도 포함). 0.35 미만은 '뚜렷하지 않음'
+  const pool = [], sep = Math.max(4, k*3);
+  for(let x = k; x <= tw - k; x++){ const v = e[x]; if(v < 14) continue; let top = true;
+    for(let j = Math.max(k, x - sep); j <= Math.min(tw - k, x + sep); j++) if(e[j] > v || (e[j] === v && j < x)){ top = false; break; }
+    if(top) pool.push({x:Math.round(x*sx), s:sOf(v), e:v}); }
+  pool.sort((a, b) => b.e - a.e); pool.length = Math.min(pool.length, 24);
+  const near = x => pool.some(p => Math.abs(p.x - x) <= W*0.004);
+  const dims = [[S.page.w, S.page.h]].concat(Object.values(PRESET).map(a => [a[0], a[1]]));   // 그림에 없는 경계는 판형 비율로 어림한 위치를 약한 후보로 쓴다
+  for(const [pw, ph] of dims) for(const bl of [0, 3]) for(const fl of [0, 100]){ const b = sprGeom(W, H, pw, ph, bl, fl); if(b) for(const x of b) if(x > 0 && x < W && !near(x)) pool.push({x, s:0.25, e:0, geo:true}); }
+  const A = pool.map(p => ({...p, end:0, est:!!p.geo || p.s < CLEAR})).concat([{x:0, s:0.55, end:1, est:false}, {x:W, s:0.55, end:2, est:false}]).sort((a, b) => a.x - b.x), n = A.length;
+  let best = null, bs = -1e9;
+  for(let i = 0; i < n; i++){ if(A[i].end === 2) continue;
+    for(let j = i + 1; j < n; j++){ if(A[j].end) continue;
+      for(let q = j + 1; q < n; q++){ if(A[q].end) continue; const sp = A[q].x - A[j].x; if(sp < Math.max(3, W*0.002)) continue;
+        for(let r = q + 1; r < n; r++){ if(A[r].end === 1) continue;
+          const back = A[j].x - A[i].x, front = A[r].x - A[q].x, fl = A[i].x, fr = W - A[r].x;
+          if(back < W*0.1 || front < W*0.1 || sp > 0.3*Math.min(back, front)) continue;
+          let sc = A[i].s + A[j].s + A[q].s + A[r].s - 6*Math.abs(back - front)/Math.max(back, front);
+          const spr = sp/Math.min(back, front); if(spr > 0.06) sc -= 8*(spr - 0.06);   // 책등은 앞뒤 표지 폭의 몇 % 안팎(얇다)
+          if(fl > W*0.02 && fr > W*0.02) sc -= 0.8*Math.abs(fl - fr)/Math.max(fl, fr);
+          if((fl > 0 && fl <= W*0.02) || (fr > 0 && fr <= W*0.02)) sc -= 0.5;
+          const dist = a => a < 0.62 ? 0.62 - a : a > 0.74 ? a - 0.74 : 0; sc -= 12*(dist(back/H) + dist(front/H));   // 부크크 판형 4종의 면 가로/세로는 0.65~0.71 (재단 여백 유무로 0.62~0.74)
+          if(sc > bs){ bs = sc; best = [A[i], A[j], A[q], A[r]]; } } } } }
+  if(!best) return {b:[0, Math.round(W*0.46), Math.round(W*0.54), W], est:[true, true, true, true]};
+  const b = best.map(p => p.x), snap = Math.round(W*0.004); if(b[0] <= snap) b[0] = 0; if(b[3] >= W - snap) b[3] = W;   // 그림 가장자리의 작은 가짜 경계는 가장자리로
+  return {b, est:best.map(p => p.est)};
+}const sprRegs = () => { const b = SPR.b, r = (a, z) => ({x:a, y:0, w:Math.max(0, z - a), h:SPR.h}); return {bf:r(0, b[0]), b:r(b[0], b[1]), old:r(b[1], b[2]), f:r(b[2], b[3]), ff:r(b[3], SPR.w)}; };
+function sprAvg(sr){ // 면의 평균 색 [r,g,b]
+  if(sr.w < 2) return null; const key = [sr.x, sr.w].join(','); if(SPR.avg.has(key)) return SPR.avg.get(key);
+  // 면 안쪽 점만 고르게 뽑는다(부드럽게 줄이면 면 바깥 이웃 색이 섞인다)
+  const cw = Math.max(1, Math.min(Math.round(sr.w), 48)), ch = Math.max(1, Math.min(Math.round(sr.h), 48)), c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  const g = c.getContext('2d', {willReadFrequently:true}); g.imageSmoothingEnabled = false; g.drawImage(SPR.img, sr.x, sr.y, sr.w, sr.h, 0, 0, cw, ch);
+  const p = g.getImageData(0, 0, cw, ch).data; let r = 0, gg = 0, b = 0; for(let i = 0; i < p.length; i += 4){ r += p[i]; gg += p[i + 1]; b += p[i + 2]; } const n = p.length/4, v = [Math.round(r/n), Math.round(gg/n), Math.round(b/n)]; SPR.avg.set(key, v); return v;
+}
+const sprHex = v => '#' + v.map(x => x.toString(16).padStart(2, '0')).join('');
+function sprPlace(g, sr, o, T, A, name, bleeds, gaps, notes, plc){ // 원본 면 sr(px)을 판형 칸 T(mm)에 맞춰 그리고 그림 칸 A(mm)를 채운다
+  const kT = Math.max(T.w/sr.w, T.h/sr.h), kF = Math.min(T.w/sr.w, T.h/sr.h), kA = Math.max(A.w/sr.w, A.h/sr.h);
+  const k = (o.mode === 'fit' ? kF : o.mode === 'trim' ? kT : o.mode === 'smart' ? Math.min(kA, kF*1.06) : kA)*o.zoom/100, iw = sr.w*k, ih = sr.h*k, B = o.mode === 'bleed' || o.mode === 'smart' ? A : T;
+  const ix = B.x + (B.w - iw)/2 + o.ox/100*Math.abs(iw - B.w)/2, iy = B.y + (B.h - ih)/2 + o.oy/100*Math.abs(ih - B.h)/2;
+  if(plc) plc[name] = {sr, k, ix, iy, T, A};
+  g.save(); g.beginPath(); g.rect(A.x, A.y, A.w, A.h); g.clip();
+  const av = sprAvg(sr); g.fillStyle = av ? 'rgb(' + av.join(',') + ')' : '#fff'; g.fillRect(A.x, A.y, A.w, A.h);
+  const L = ix - A.x, R = A.x + A.w - (ix + iw), Tp = iy - A.y, Bt = A.y + A.h - (iy + ih), e = 0.03;
+  if(L > 0) g.drawImage(SPR.img, sr.x, sr.y, 1, sr.h, A.x, iy, L + e, ih);
+  if(R > 0) g.drawImage(SPR.img, sr.x + sr.w - 1, sr.y, 1, sr.h, ix + iw - e, iy, R + e, ih);
+  if(Tp > 0) g.drawImage(SPR.img, sr.x, sr.y, sr.w, 1, ix, A.y, iw, Tp + e);
+  if(Bt > 0) g.drawImage(SPR.img, sr.x, sr.y + sr.h - 1, sr.w, 1, ix, iy + ih - e, iw, Bt + e);
+  g.drawImage(SPR.img, sr.x, sr.y, sr.w, sr.h, ix, iy, iw, ih);
+  g.restore();
+  // 이미지가 모자라 가장자리 색으로 채운 곳: 재단 여백 안쪽(bleeds)과 판형 안쪽을 나눠 알린다
+  const side = [['왼쪽', L, bleeds.l, {x:A.x, y:A.y, w:Math.max(L, 0), h:A.h}], ['오른쪽', R, bleeds.r, {x:A.x + A.w - Math.max(R, 0), y:A.y, w:Math.max(R, 0), h:A.h}],
+    ['위', Tp, bleeds.t, {x:A.x, y:A.y, w:A.w, h:Math.max(Tp, 0)}], ['아래', Bt, bleeds.b, {x:A.x, y:A.y + A.h - Math.max(Bt, 0), w:A.w, h:Math.max(Bt, 0)}]];
+  const sb = [], st = [];
+  for(const [nm, u, bl, rect] of side){ if(u > 0.05){ gaps.push(rect); const inB = Math.min(u, bl), inT = Math.max(0, u - bl); if(inB > 0.05) sb.push(nm + ' ' + inB.toFixed(1) + 'mm'); if(inT > 0.05) st.push(nm + ' ' + inT.toFixed(1) + 'mm'); } }
+  if(sb.length) notes.push(['warn', name + ': 재단 여백을 채울 그림이 모자랍니다(' + sb.join(', ') + '). 가장자리 색을 늘려 채웠습니다. 확대를 키우거나 위치를 옮겨 보세요.']);
+  if(st.length) notes.push(['warn', name + ': 판형 안쪽에 그림이 닿지 않는 곳이 생겼습니다(' + st.join(', ') + '). 가장자리 색으로 채웠습니다.']);
+  const cx = Math.max(0, iw - A.w), cy = Math.max(0, ih - A.h);
+  if(cx > 0.3 || cy > 0.3) notes.push(['info', name + ': 원본 면이 ' + [cx > 0.3 && '가로 ' + (cx/iw*100).toFixed(1) + '%(' + cx.toFixed(1) + 'mm)', cy > 0.3 && '세로 ' + (cy/ih*100).toFixed(1) + '%(' + cy.toFixed(1) + 'mm)'].filter(Boolean).join(', ') + ' 잘립니다(가로세로 비율은 그대로).']);
+}
+function sprSpine(g, xs, w, H, bl, color, text, notes){ // 새 책등: 색 면 + (원하면) 세로 제목·저자. 좌표는 mm
+  g.fillStyle = color; g.fillRect(xs, 0, w, H);
+  if(text && w >= 5.1){
+    const title = (S.meta.title || '').replace(/\s+/g, ' ').trim(), au = (S.meta.author || '').trim(), txt = title + (au ? '   ' + au : '');
+    if(txt){
+      const hx = parseInt(color.slice(1), 16), lum = (0.299*(hx >> 16 & 255) + 0.587*(hx >> 8 & 255) + 0.114*(hx & 255))/255, fk = F[S.fonts.head], fam = fk ? fk.fam : 'sans-serif';
+      const top = bl + 8, bot = H - bl - 25, len = bot - top; let fs = Math.min(w*0.45, 6);
+      g.save(); g.translate(xs + w/2, (top + bot)/2); g.rotate(Math.PI/2); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = lum > 0.6 ? '#111' : '#fff';
+      g.font = '700 ' + fs + 'px "' + fam + '"'; const tw = g.measureText(txt).width; if(tw > len){ fs *= len/tw; g.font = '700 ' + fs + 'px "' + fam + '"'; }
+      g.fillText(txt, 0, 0); g.restore();
+    }
+  } else if(text && notes) notes.push(['info', '책등이 ' + fmt(w) + 'mm로 얇아 글자는 넣지 않았습니다(5mm 이하는 밀려 보일 수 있습니다).']);
+}
+function sprRender(sc, ov){ // 출력 규격(ov, 없으면 지금 작업)대로 펼침 표지를 sc(px/mm)로 그린다 → {cv, gaps, notes, plc, d}
+  const d = coverDims(ov), P = d.P, W = d.W, H = d.H, bl = d.bl, R = sprRegs(), cv = document.createElement('canvas'), gaps = [], notes = [], plc = {};
+  cv.width = Math.round(W*sc); cv.height = Math.round(H*sc);
+  const g = cv.getContext('2d'); g.setTransform(cv.width/W, 0, 0, cv.height/H, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  const xb = bl + d.flap, xs = xb + P.w, xf = xs + d.spine, xe = xf + P.w;
+  sprPlace(g, R.b, SPR.back, {x:xb, y:bl, w:P.w, h:P.h}, {x:d.flap ? xb : 0, y:0, w:d.flap ? P.w : xb + P.w, h:H}, '뒤표지', {l:d.flap ? 0 : bl, r:0, t:bl, b:bl}, gaps, notes, plc);
+  sprPlace(g, R.f, SPR.front, {x:xf, y:bl, w:P.w, h:P.h}, {x:xf, y:0, w:d.flap ? P.w : P.w + bl, h:H}, '앞표지', {l:0, r:d.flap ? 0 : bl, t:bl, b:bl}, gaps, notes, plc);
+  if(d.flap){
+    for(const [sr, side, nm] of [[R.bf, 'b', '뒷날개'], [R.ff, 'f', '앞날개']]){
+      const T = side === 'b' ? {x:bl, y:bl, w:d.flap, h:P.h} : {x:xe, y:bl, w:d.flap, h:P.h}, A = side === 'b' ? {x:0, y:0, w:bl + d.flap, h:H} : {x:xe, y:0, w:d.flap + bl, h:H};
+      if(sr.w < 3){ const av = sprAvg(side === 'b' ? R.b : R.f); g.fillStyle = av ? 'rgb(' + av.join(',') + ')' : '#fff'; g.fillRect(A.x, A.y, A.w, A.h); gaps.push(A); notes.push(['info', nm + ': 원본에 날개 면이 없어 ' + (side === 'b' ? '뒤표지' : '앞표지') + ' 가장자리 색으로 빈 날개를 만들었습니다.']); }
+      else sprPlace(g, sr, SPR.flap, T, A, nm, side === 'b' ? {l:bl, r:0, t:bl, b:bl} : {l:0, r:bl, t:bl, b:bl}, gaps, notes, plc);
+    }
+  } else if(R.bf.w > 2 || R.ff.w > 2) notes.push(['info', '날개 없이 만드는 설정이라 원본의 날개 면은 쓰지 않았습니다.']);
+  // 책등: 원본 책등은 버리고 계산한 폭으로 새로 그린다
+  sprSpine(g, xs, d.spine, H, bl, SPR.spineColor, SPR.spineText, notes);
+  return {cv, gaps, notes, plc, d};
+}
+function sprCtl(k, t){
+  const id = s => 'sp-' + k + '-' + s;
+  return '<div class="sp-c"><b>' + t + '</b><label class="f">맞추는 방법<select id="' + id('mode') + '">' + SPR_MODES.map(m => '<option value="' + m[0] + '">' + m[1] + '</option>').join('') + '</select></label>'
+    + ('<label class="f">확대 <span id="' + id('zv') + '"></span><input type="range" id="' + id('zoom') + '" min="100" max="250" step="1"></label>'
+    + '<label class="f">좌우 위치<input type="range" id="' + id('ox') + '" min="-100" max="100"></label><label class="f">위아래 위치<input type="range" id="' + id('oy') + '" min="-100" max="100"></label>') + '</div>';
+}
+function sprCommit(dr){ // 창에서 고른 출력 규격을 작업에 저장한다 ('표지에 적용'을 눌렀을 때만)
+  const k = dr.preset, a = PRESET[k];
+  if(k !== 'cur' && a && (S.page.w !== a[0] || S.page.h !== a[1] || S.page.preset !== k)){ set('page.preset', k); Object.assign(S.page, {w:a[0], h:a[1], mt:a[2], mb:a[3], mi:a[4], mo:a[5]}); }
+  S.cover.flap = !!dr.flap; S.cover.flapW = dr.flapW; S.cover.bleed = dr.bleed; S.cover.pages = dr.pages; S.cover.paper = dr.paper; S.cover.pagesSrc = pagesSrcFor(dr.pages);
+  fill(); refresh(true);
+}
+async function sprApply(dr){
+  sprCommit(dr);
+  const d = coverDims(), {cv} = sprRender(300/25.4), url = cv.toDataURL('image/jpeg', 0.92), img = await loadImg(url);
+  COVER = {dataUrl:url, img, w:img.naturalWidth, h:img.naturalHeight};
+  CS().cover = {name:'다시 조립한 표지_' + SPR.name.replace(/\.[^.]+$/, '') + '.jpg', kind:'JPG', dpi:300, at:Date.now(), spec:{from:'펼침 표지 다시 조립', pages:coverPages(), spine:r3(d.spine), provisional:false},
+    asm:{pw:d.P.w, ph:d.P.h, flap:d.flap, bleed:d.bl, spine:r3(d.spine), W:r3(d.W), H:r3(d.H), color:SPR.spineColor, text:SPR.spineText}};
+  refresh(true);
+  toast('다시 조립한 표지를 넣었습니다: ' + coverPages() + '쪽, 책등 ' + fmt(d.spine) + 'mm, 펼침 ' + d.W.toFixed(1) + '×' + d.H.toFixed(1) + 'mm. 표지 미리보기에서 재단선·접는 선을 확인해 주세요.', 7000);
+}
+function asmState(){ // 펼침 표지 가져오기로 조립한 표지의 책등이 지금 쪽수·종이와 맞는지
+  const ci = CS().cover, a = ci && ci.asm; if(!COVER || !a) return null;
+  const d = coverDims(), P = d.P;
+  return {a, d, stale:Math.abs(a.spine - d.spine) > 0.004, geom:!(Math.abs(a.pw - P.w) < 0.01 && Math.abs(a.ph - P.h) < 0.01 && Math.abs(a.flap - d.flap) < 0.01 && Math.abs(a.bleed - d.bl) < 0.01)};
+}
+async function respineCover(){ // 앞뒤 표지·날개 그림은 그대로 두고 책등 폭만 바꿔 다시 조립한다
+  const A = asmState(); if(!A) throw new Error('다시 조립할 수 있는 표지가 없습니다. 펼침 표지 가져오기로 먼저 조립해 주세요.');
+  if(A.geom) throw new Error('판형·날개·재단 여백이 바뀌어 책등만 바꿀 수 없습니다. 펼침 표지 가져오기로 다시 조립해 주세요.');
+  const {a, d} = A, ppm = COVER.w/a.W, xs = a.bleed + a.flap + a.pw, lp = Math.round(xs*ppm), rp = COVER.w - Math.round((xs + a.spine)*ppm), sp = Math.round(d.spine*ppm), w = lp + sp + rp, h = COVER.h;
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h);
+  g.drawImage(COVER.img, 0, 0, lp, h, 0, 0, lp, h);                         // 뒷날개·뒤표지: 그대로
+  g.drawImage(COVER.img, COVER.w - rp, 0, rp, h, lp + sp, 0, rp, h);        // 앞표지·앞날개: 그대로
+  g.save(); g.setTransform(ppm, 0, 0, ppm, 0, 0); sprSpine(g, lp/ppm, sp/ppm, h/ppm, a.bleed, a.color, a.text, null); g.restore();
+  const url = cv.toDataURL('image/jpeg', 0.95), img = await loadImg(url), ci = CS().cover;
+  COVER = {dataUrl:url, img, w:img.naturalWidth, h:img.naturalHeight};
+  CS().cover = {...ci, at:Date.now(), spec:{...(ci.spec || {}), pages:d.n, spine:r3(d.spine)}, asm:{...a, spine:r3(d.spine), W:r3(d.W)}, respine:(ci.respine || 0) + 1};
+  refresh(true);
+  toast('책등만 ' + fmt(a.spine) + ' → ' + fmt(d.spine) + 'mm로 바꿔 다시 조립했습니다(' + d.n + '쪽, 펼침 ' + fmt(a.W) + ' → ' + fmt(d.W) + 'mm). 앞뒤 표지·날개 그림은 그대로입니다.', 7000);
+}
+async function saveCoverSet(){ // 표지 PDF와 사양 JSON을 같은 책등·쪽수로 함께 저장
+  if(!COVER) throw new Error('표지 탭에서 표지 그림을 먼저 올려 주세요.');
+  const A = asmState(); if(A && (A.stale || A.geom)) throw new Error('조립한 표지의 책등이 지금 쪽수·종이와 다릅니다. 먼저 ' + (A.geom ? '펼침 표지 가져오기로 다시 조립' : "'새 책등으로 다시 조립'을 눌러") + ' 주세요.');
+  const d = coverDims(), sp = coverSpec(), pdf = specStem(sp).replace(stem(), stem() + '_표지') + '_' + d.W.toFixed(2) + 'x' + d.H.toFixed(1) + '.pdf', js = specStem(sp).replace(stem(), stem() + '_표지사양') + '.json';
+  await saveFile(pdf, new Blob([await coverPdf()])); await saveSpec();
+  return '저장을 넘겼습니다: ' + pdf + ' · ' + js + ' (' + d.n + '쪽, 책등 ' + fmt(d.spine) + 'mm, ' + (spineState().st === 'fixed' ? '확정' : '책등 임시') + ')';
+}
+async function spreadImport(){
+  const box = document.querySelector('#modal .mbox'), pa = S.page, curOk = !(PRESET[pa.preset] && PRESET[pa.preset][0] === pa.w && PRESET[pa.preset][1] === pa.h);
+  const dr = {preset:curOk ? 'cur' : pa.preset, page:{w:pa.w, h:pa.h}, flap:!!S.cover.flap, flapW:+S.cover.flapW || 100, bleed:+S.cover.bleed, pages:String(S.cover.pages || ''), paper:S.cover.paper || 'auto'};
+  const OV = () => ({page:dr.page, flap:dr.flap, flapW:dr.flapW, bleed:dr.bleed, pages:dr.pages, paper:dr.paper});
+  const body = '<div class="spr"><div class="bar" style="justify-content:flex-start"><label class="b p">펼침 표지 올리기 (JPG·PNG)<input type="file" id="sp-in" accept="image/*,.pdf,application/pdf"></label><span class="note" id="sp-name"></span></div>'
+    + '<p class="note">뒤날개 · 뒤표지 · 기존 책등 · 앞표지 · 앞날개 순서로 한 장에 담긴 표지를 올립니다. 올린 그림은 컴퓨터 안에서만 쓰고 어디로도 보내지 않습니다. 창 안에서 바꾼 판형·쪽수·종이는 \'표지에 적용\'을 눌러야 저장되고, 취소하면 그대로입니다.</p>'
+    + '<div id="sp-work" hidden><h4>1. 원본을 다섯 면으로 나누기</h4><canvas id="sp-src"></canvas><div class="row" id="sp-bnd"></div><div class="bar" style="justify-content:flex-start"><button class="b" id="sp-redo">경계 다시 찾기</button><button class="b" id="sp-estok" hidden>추정한 경계를 확인했습니다</button></div><p class="note" id="sp-binfo"></p>'
+    + '<div id="sp-fw" hidden><p class="warnline" id="sp-fwt"></p><label class="f">원본에 날개가 없다면<select id="sp-fch"><option value="">선택해 주세요</option><option value="blank">빈 날개로 진행 (표지 가장자리 색으로 채움)</option><option value="off">날개 없이 만들기 (출력 날개 끄기)</option></select></label></div>'
+    + '<h4>2. 출력 규격</h4><div class="row"><label class="f">출력 판형<select id="sp-preset"></select></label><label class="c" style="align-self:end"><input type="checkbox" id="sp-flapon"> 날개 있음</label><label class="f">날개 폭 (mm)<input type="number" id="sp-flapw" min="0" step="1"></label><label class="f">재단 여백 (mm)<input type="number" id="sp-bleed" min="0" step="0.5"></label>'
+    + '<label class="f">제출할 내지 PDF 쪽수<input type="text" id="sp-pages"></label><label class="f">내지 종이<select id="sp-paper"></select></label></div><p class="note" id="sp-sinfo"></p>'
+    + '<h4>3. 앞뒤 표지 맞추기</h4><div class="sp-cs">' + sprCtl('front', '앞표지') + sprCtl('back', '뒤표지') + sprCtl('flap', '날개 (양쪽)') + '</div>'
+    + '<h4>4. 책등 다시 만들기</h4><div class="row"><label class="f">책등 색<input type="color" id="sp-scolor"></label><label class="c" style="align-self:end"><input type="checkbox" id="sp-stext"> 책등에 제목·저자 글자 넣기</label></div>'
+    + '<h4>5. 결과 미리보기 <span class="note">(붉은 점선 재단선 · 접는 선 · 파란 점선 안전 여백 5mm · 붉은 칠: 그림이 모자란 곳)</span></h4><canvas id="sp-out"></canvas><ul class="chk" id="sp-warn"></ul></div></div>';
+  box.style.maxWidth = '900px';
+  const p = ask('펼침 표지 가져오기', body, [{t:'표지에 적용', v:1, p:true}, {t:'취소', v:0}]);
+  const cl = (v, a, b) => Math.max(a, Math.min(b, v)), maxW = () => Math.max(240, Math.min(840, box.clientWidth - 40)), ctl = ['front', 'back', 'flap'];
+  const fm = () => dr.flap && SPR.img && (SPR.b[0] <= 2 || SPR.w - SPR.b[3] <= 2) ? {L:SPR.b[0] <= 2, R:SPR.w - SPR.b[3] <= 2} : null;   // 날개를 켰는데 원본 날개 면이 0
+  const sync = () => { // 입력 칸 ← 상태
+    ctl.forEach(k => { const o = SPR[k], id = s => $('sp-' + k + '-' + s); id('mode').value = o.mode; if(id('zoom')){ id('zoom').value = o.zoom; id('ox').value = o.ox; id('oy').value = o.oy; id('zv').textContent = o.zoom + '%'; } });
+    $('sp-scolor').value = SPR.spineColor; $('sp-stext').checked = SPR.spineText; $('sp-flapon').checked = dr.flap; $('sp-flapw').disabled = !dr.flap;
+    for(const [id, v] of [['sp-flapw', dr.flapW], ['sp-bleed', dr.bleed], ['sp-pages', dr.pages]]) if(document.activeElement !== $(id)) $(id).value = v;
+    $('sp-pages').placeholder = '웹 ' + BOOK.pages.length + '쪽';
+    $('sp-preset').innerHTML = (curOk ? '<option value="cur">현재 판형 ' + pa.w + '×' + pa.h + ' (직접)</option>' : '') + Object.entries(PRESET).map(([k, a]) => '<option value="' + k + '">' + k + ' ' + a[0] + '×' + a[1] + '</option>').join(''); $('sp-preset').value = dr.preset;
+    $('sp-paper').innerHTML = [['auto', '자동']].concat(Object.entries(PAPERS).map(([k, v]) => [k, v[0]])).map(([k, t]) => '<option value="' + k + '"' + (dr.paper === k ? ' selected' : '') + '>' + t + '</option>').join('');
+    const bn = [['뒷날개|뒤표지', 0], ['뒤표지|책등', 1], ['책등|앞표지', 2], ['앞표지|앞날개', 3]];
+    if(!$('sp-bnd').children.length) $('sp-bnd').innerHTML = bn.map(([t, i]) => '<label class="f">' + t + ' 경계 (px)<input type="number" min="0" max="' + SPR.w + '" data-b="' + i + '"></label>').join('');
+    $('sp-bnd').querySelectorAll('input').forEach(el => { if(document.activeElement !== el) el.value = SPR.b[+el.dataset.b]; });
+  };
+  const drawSrc = () => {
+    const cv = $('sp-src'), k = Math.min(maxW()/SPR.w, 280/SPR.h), W = Math.round(SPR.w*k), H = Math.round(SPR.h*k), dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = W*dpr; cv.height = H*dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.drawImage(SPR.img, 0, 0, W, H);
+    const R = sprRegs(), nm = [['bf', '뒷날개', 'rgba(231,76,60,.18)'], ['b', '뒤표지', 'rgba(47,111,181,.12)'], ['old', '기존 책등 (버림)', 'rgba(0,0,0,.45)'], ['f', '앞표지', 'rgba(47,111,181,.12)'], ['ff', '앞날개', 'rgba(231,76,60,.18)']];
+    g.font = '600 12px sans-serif'; g.textAlign = 'center';
+    nm.forEach(([key, t, col]) => { const r = R[key]; g.fillStyle = col; g.fillRect(r.x*k, 0, r.w*k, H);
+      if(r.w*k > 44){ const tw = g.measureText(t).width + 8; g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect((r.x + r.w/2)*k - tw/2, 6, tw, 18); g.fillStyle = '#b3372b'; g.fillText(t, (r.x + r.w/2)*k, 19); } });
+    g.lineWidth = 2; SPR.b.forEach(x => { g.strokeStyle = '#ffd400'; g.beginPath(); g.moveTo(x*k, 0); g.lineTo(x*k, H); g.stroke(); g.strokeStyle = '#222'; g.lineWidth = 1; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(x*k, 0); g.lineTo(x*k, H); g.stroke(); g.setLineDash([]); g.lineWidth = 2;
+      g.fillStyle = '#ffd400'; g.fillRect(x*k - 5, H/2 - 14, 10, 28); g.strokeStyle = '#222'; g.lineWidth = 1; g.strokeRect(x*k - 5, H/2 - 14, 10, 28); g.lineWidth = 2; });
+    SPR.est.forEach((on, i) => { if(!on) return; const x = SPR.b[i]*k; g.strokeStyle = '#d0342c'; g.lineWidth = 3; g.setLineDash([8, 5]); g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); g.setLineDash([]);
+      g.font = '700 12px sans-serif'; const t = '추정 위치 · 원본 경계 확인', tw = g.measureText(t).width + 10, bx = x + tw + 8 < W ? x + 6 : x - tw - 6, by = H - 30 - (i % 2)*24; g.fillStyle = '#d0342c'; g.fillRect(bx, by, tw, 20); g.fillStyle = '#fff'; g.textAlign = 'left'; g.fillText(t, bx + 5, by + 14); g.textAlign = 'center'; });
+    cv._k = k;
+    const d = coverDims(OV()), mm = d.H/SPR.h, w = key => (R[key].w*mm).toFixed(1), P = d.P, pr = P.w/P.h;
+    $('sp-binfo').innerHTML = '면 폭 어림(그림 높이를 ' + d.H.toFixed(0) + 'mm로 본 값): 뒷날개 ' + w('bf') + ' · 뒤표지 ' + w('b') + ' · 기존 책등 ' + w('old') + ' · 앞표지 ' + w('f') + ' · 앞날개 ' + w('ff') + 'mm. 출력 판형은 ' + P.w + '×' + P.h + 'mm입니다.'
+      + (Math.abs(R.f.w/R.f.h/pr - 1) > 0.03 || Math.abs(R.b.w/R.b.h/pr - 1) > 0.03 ? ' <span class="warnline">앞표지나 뒤표지 면의 가로세로 비율이 출력 판형과 3% 넘게 달라 일부가 잘리거나 여백이 생깁니다. 아래에서 조정하세요.</span>' : '');
+    const eb = SPR.est.map((v, i) => v ? ['뒷날개|뒤표지', '뒤표지|책등', '책등|앞표지', '앞표지|앞날개'][i] : null).filter(Boolean);
+    $('sp-binfo').innerHTML += (eb.length ? ' <span class="warnline">뚜렷한 경계를 찾지 못해 추정한 선: ' + eb.join(', ') + '. 붉은 점선 위치를 원본과 겹쳐 보고 맞지 않으면 끌어서 고쳐 주세요.</span>' : '');
+    $('sp-estok').hidden = !eb.length;
+    const f = fm(), fw = $('sp-fw'); fw.hidden = !f; if(!f) SPR.flapChoice = null;
+    $('sp-bnd').querySelectorAll('input').forEach(el => { const i = +el.dataset.b; el.style.outline = f && ((i === 0 && f.L) || (i === 3 && f.R)) ? '2px solid #d0342c' : ''; });
+    if(f) $('sp-fwt').textContent = '출력 규격에서 날개를 켰는데 원본의 ' + [f.L && '뒷날개', f.R && '앞날개'].filter(Boolean).join('·') + ' 면 폭이 0입니다. 원본에 날개 글이 있다면 ' + [f.L && '첫 번째 칸 \'뒷날개|뒤표지 경계\'를 오른쪽으로', f.R && '네 번째 칸 \'앞표지|앞날개 경계\'를 왼쪽으로'].filter(Boolean).join(', ') + ' 옮겨 날개 면을 만들어 주세요(붉은 테두리 칸). 원본에 날개가 없다면 아래에서 고르세요.';
+    $('sp-fch').value = SPR.flapChoice || '';
+    const ok = $('m-btns').querySelector('.p'); if(ok) ok.disabled = !!f && SPR.flapChoice !== 'blank';
+  };
+  const drawOut = () => {
+    const ov = OV(), sc = maxW()/coverDims(ov).W, cv = $('sp-out'), r = sprRender(sc, ov), d = r.d, P = d.P;
+    cv.width = r.cv.width; cv.height = r.cv.height; cv.style.width = cv.width + 'px';
+    const g = cv.getContext('2d'); g.drawImage(r.cv, 0, 0); g.setTransform(sc, 0, 0, sc, 0, 0);
+    g.fillStyle = 'rgba(214,40,40,.4)'; r.gaps.forEach(q => g.fillRect(q.x, q.y, q.w, q.h));
+    const xb = d.bl + d.flap, xs = xb + P.w, xf = xs + d.spine, xe = xf + P.w;
+    g.lineWidth = 0.6/sc; g.strokeStyle = '#d0342c'; g.setLineDash([2.5, 2]); g.strokeRect(d.bl, d.bl, d.W - 2*d.bl, d.H - 2*d.bl);
+    (d.flap ? [xb, xs, xf, xe] : [xs, xf]).forEach(x => { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, d.H); g.stroke(); });
+    g.strokeStyle = '#2f6fb5'; g.setLineDash([1.2, 1.2]); g.strokeRect(d.bl + 5, d.bl + 5, d.W - 2*d.bl - 10, d.H - 2*d.bl - 10);
+    const n = d.n, ov0 = parseInt(dr.pages, 10) > 0;
+    $('sp-sinfo').innerHTML = '적용할 쪽수 <b>' + n + '쪽</b>' + (ov0 ? ' (' + (pagesSrcFor(dr.pages) === 'pdf' ? '내지 PDF에서 읽은 쪽수' : '직접 입력') + (n !== BOOK.pages.length ? ', 웹 조판은 ' + BOOK.pages.length + '쪽' : '') + ')' : ' (웹 조판 쪽수)') + ' · ' + PAPERS[d.pk][0] + ' → 책등 <b>' + fmt(d.spine) + 'mm</b> (' + n + ' ÷ 2 × ' + d.t + ' + 1.6) · 펼침 <b>' + d.W.toFixed(2) + '×' + d.H.toFixed(1) + 'mm</b>'
+      + (parseFloat(S.cover.spine) > 0 ? ' <span class="warnline">표지 탭에 직접 넣은 책등 값이 있어 그 값을 씁니다.</span>' : '');
+    const notes = r.notes.slice(); if(d.flap && P.w === 210 && P.h === 297) notes.unshift(['warn', '부크크는 A4 판형에 날개를 쓸 수 없습니다. 날개 없음으로 만드는 것이 안전합니다.']);
+    $('sp-warn').innerHTML = notes.length ? notes.map(([s, t]) => li(s, s === 'warn' ? '확인' : '참고', esc(t))).join('') : li('ok', '좋음', '앞뒤 표지 모두 재단 여백까지 그림이 채워집니다.');
+  };
+  const upd = () => { sync(); drawSrc(); drawOut(); };
+  const open = () => { $('sp-work').hidden = false; $('sp-name').textContent = SPR.name + ' (' + SPR.w + ' × ' + SPR.h + ' px)'; upd(); };
+  if(SPR.img) open();
+  $('sp-in').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+    try{ const {cover} = await readCover(f); SPR.img = cover.img; SPR.w = cover.w; SPR.h = cover.h; SPR.name = f.name; SPR.avg = new Map(); SPR.flapChoice = null; { const dd = sprDetect(cover.img); SPR.b = dd.b; SPR.est = dd.est; }
+      SPR.front = sprOpt(); SPR.back = sprOpt(); SPR.flap = sprOpt('smart'); const R = sprRegs(), av = sprAvg(R.old) || sprAvg(R.f) || [31, 58, 95]; SPR.spineColor = sprHex(av); SPR.spineText = coverDims(OV()).spine >= 6; open();
+    }catch(err){ console.error(err); toast(f.name + ': ' + err.message, 6000); } };
+  const src = $('sp-src'); let drag = -1;
+  const px = e => { const b = src.getBoundingClientRect(); return (e.clientX - b.left)/src._k; };
+  src.onpointerdown = e => { const x = px(e); let best = -1, bd = 1e9; SPR.b.forEach((v, i) => { const dd = Math.abs(v - x)*src._k; if(dd < bd){ bd = dd; best = i; } }); if(bd <= 12){ drag = best; src.setPointerCapture(e.pointerId); } };
+  src.onpointermove = e => { if(drag < 0){ const x = px(e); src.style.cursor = SPR.b.some(v => Math.abs(v - x)*src._k <= 12) ? 'ew-resize' : 'default'; return; }
+    SPR.b[drag] = Math.round(cl(px(e), drag ? SPR.b[drag - 1] : 0, drag < 3 ? SPR.b[drag + 1] : SPR.w)); SPR.est[drag] = false; upd(); };
+  src.onpointerup = () => { drag = -1; };
+  $('sp-bnd').onchange = e => { const el = e.target.closest('[data-b]'); if(!el) return; const i = +el.dataset.b, v = parseInt(el.value, 10); if(isFinite(v)){ SPR.b[i] = cl(v, i ? SPR.b[i - 1] : 0, i < 3 ? SPR.b[i + 1] : SPR.w); SPR.est[i] = false; } upd(); };
+  $('sp-estok').onclick = () => { SPR.est = [false, false, false, false]; upd(); };
+  $('sp-redo').onclick = () => { if(!SPR.img) return; { const dd = sprDetect(SPR.img); SPR.b = dd.b; SPR.est = dd.est; } SPR.flapChoice = null; upd(); toast('원본에서 경계를 다시 찾았습니다.'); };
+  ctl.forEach(k => { for(const s of ['mode', 'zoom', 'ox', 'oy']){ const el = $('sp-' + k + '-' + s); if(el) el.oninput = () => { SPR[k][s] = s === 'mode' ? el.value : +el.value; sync(); drawOut(); }; } });
+  $('sp-scolor').oninput = e => { SPR.spineColor = e.target.value; drawOut(); };
+  $('sp-stext').onchange = e => { SPR.spineText = e.target.checked; drawOut(); };
+  $('sp-preset').onchange = e => { const v = e.target.value; dr.preset = v; dr.page = v === 'cur' ? {w:pa.w, h:pa.h} : {w:PRESET[v][0], h:PRESET[v][1]}; upd(); };
+  $('sp-flapon').onchange = e => { dr.flap = e.target.checked; upd(); };
+  $('sp-flapw').oninput = e => { const v = parseFloat(e.target.value); if(isFinite(v) && v >= 0){ dr.flapW = v; upd(); } };
+  $('sp-bleed').oninput = e => { const v = parseFloat(e.target.value); if(isFinite(v) && v >= 0){ dr.bleed = v; upd(); } };
+  $('sp-pages').oninput = e => { dr.pages = e.target.value.replace(/[^\d]/g, ''); upd(); };
+  $('sp-paper').onchange = e => { dr.paper = e.target.value; upd(); };
+  $('sp-fch').onchange = e => { const v = e.target.value; if(v === 'off'){ dr.flap = false; SPR.flapChoice = null; } else SPR.flapChoice = v || null; upd(); };
+  const v = await p; box.style.maxWidth = '';
+  if(v !== 1) return;   // 취소: 작업의 판형·날개·쪽수·종이·표지는 그대로
+  if(!SPR.img){ toast('펼침 표지를 먼저 올려 주세요.'); return; }
+  await sprApply(dr);
+}
 function markSent(sp){ CS().sent = {pages:sp.interior.pages, spine:sp.spine.mm, W:sp.cover.width, H:sp.cover.height, provisional:sp.spine.provisional, at:Date.now()}; refresh(true); }
-const specStem = sp => stem() + '_' + sp.interior.pages + '쪽_책등' + sp.spine.mm.toFixed(2) + 'mm' + (sp.spine.provisional ? '_임시' : '');
+const specStem = sp => stem() + '_' + sp.interior.pages + '쪽_책등' + sp.spine.mm.toFixed(2) + 'mm' + (sp.spine.provisional ? '_임시' : '') + (sp.review && sp.review.only ? '_검수용' : '');
 async function saveSpec(){ const sp = coverSpec(); await saveFile(specStem(sp).replace(stem(), stem() + '_표지사양') + '.json', new Blob([JSON.stringify(sp, null, 2)], {type:'application/json'})); markSent(sp); }
 function crc32(u){ let c, t = crc32.t; if(!t){ t = crc32.t = new Uint32Array(256); for(let n = 0; n < 256; n++){ c = n; for(let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } }
   c = 0xFFFFFFFF; for(let i = 0; i < u.length; i++) c = t[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
@@ -2230,24 +2498,51 @@ async function copySpecLine(){
   catch(e){ el.focus(); el.select(); toast('자동으로 복사하지 못했습니다. 칸의 글이 선택되어 있으니 Ctrl+C로 복사해 주세요.', 6000); }
   markSent(sp);
 }
+function pagesSrcFor(v){ v = String(v || ''); return !v ? '' : S.cover.pdf && String(S.cover.pdf.pages) === v ? 'pdf' : 'manual'; }
+function spineBasis(){ // 책등 쪽수의 근거: pdf(내지 PDF에서 읽음) / manual(직접 입력, 임시) / web(웹 조판 쪽수, 임시)
+  const n = coverPages(), src = parseInt(S.cover.pages, 10) > 0 ? (S.cover.pagesSrc === 'pdf' && S.cover.pdf && S.cover.pdf.pages === n ? 'pdf' : 'manual') : 'web';
+  return {src, text: src === 'pdf' ? '내지 PDF ‘' + S.cover.pdf.name + '’에서 읽은 실제 쪽수' : src === 'manual' ? '직접 입력한 쪽수, 내지 PDF로 확인하지 않음' : '웹 조판 쪽수, 내지 PDF로 확인하지 않음'};
+}
+function spineWatch(){ // 쪽수나 내지 종이가 바뀌면 쪽수 확정을 풀고, 바뀐 책등·펼침 폭을 남긴다
+  const d = coverDims(), n = d.n, c = S.cover, last = c.last, cur = {pages:n, pk:d.pk, spine:r3(d.spine), W:r3(d.W)};
+  if(last && (last.pages !== n || last.pk !== d.pk)){ const had = !!CS().fix; if(had) CS().fix = null; CS().delta = {from:last, to:cur, released:had, at:Date.now()}; }
+  c.last = cur;
+}
+async function useInteriorPdf(f){ // 제출할 내지 PDF의 실제 쪽수를 읽어 책등 쪽수로 쓴다
+  const u = new Uint8Array(await readBuf(f)); if(!(u[0] === 0x25 && u[1] === 0x50 && u[2] === 0x44 && u[3] === 0x46)) throw new Error('PDF 파일이 아닙니다.');
+  const doc = await PDFLib.PDFDocument.load(u, {ignoreEncryption:true, updateMetadata:false}), n = doc.getPageCount(), sz = doc.getPage(0).getSize(), P = S.page;
+  S.cover.pdf = {name:f.name, pages:n, w:r3(sz.width/MM), h:r3(sz.height/MM), at:Date.now()}; S.cover.pages = String(n); S.cover.pagesSrc = 'pdf'; const fld = $('f-cover-pages'); if(fld) fld.value = n;
+  spineWatch();
+  const bad = [n % 2 && '홀수 쪽이라 부크크에 올리기 전에 바뀔 수 있습니다', (n < 50 || n > 978) && '부크크 종이책은 50~978쪽만 만들 수 있습니다(지금 ' + n + '쪽, ' + (n < 50 ? (50 - n) + '쪽 모자람' : (n - 978) + '쪽 넘침') + ')', (Math.abs(S.cover.pdf.w - P.w) > 1 || Math.abs(S.cover.pdf.h - P.h) > 1) && '쪽 크기 ' + S.cover.pdf.w + '×' + S.cover.pdf.h + 'mm가 판형 ' + P.w + '×' + P.h + 'mm와 다릅니다'].filter(Boolean);
+  const d = coverDims();
+  if(!bad.length){ CS().fix = {pages:n, spine:r3(d.spine), W:r3(d.W), H:r3(d.H), at:Date.now()}; }
+  refresh(true);
+  toast('내지 PDF ' + n + '쪽을 읽었습니다. 책등 ' + fmt(d.spine) + 'mm, 펼침 ' + d.W.toFixed(2) + 'mm' + (bad.length ? '. 확인할 것: ' + bad.join(', ') + '. 쪽수 확정은 보류했습니다(책등 임시).' + (n < 50 || n > 978 ? ' 지금 쪽수로 저장하는 표지 PDF·사양은 검수용 임시본으로 표시합니다.' : '') : '. 실제 쪽수라 쪽수를 확정했습니다.'), 8000);
+}
 async function fixSpine(){
   const {d, n} = spineState();
   if(n % 2 || n < 50 || n > 978){
     const r = await ask('쪽수 확정', '<p class="warnline">지금 내지는 ' + n + '쪽입니다. ' + (n % 2 ? '홀수 쪽이라 부크크에 올리기 전에 바뀔 수 있습니다. ' : '') + (n < 50 || n > 978 ? '부크크 범위(50~978쪽) 밖입니다. ' : '') + '그래도 이 쪽수로 책등을 확정할까요?</p>', [{t:'확정', v:1, p:true}, {t:'취소', v:0}]);
     if(r !== 1) return;
   }
-  CS().fix = {pages:n, spine:r3(d.spine), W:r3(d.W), H:r3(d.H), at:Date.now()}; refresh(true);
+  CS().fix = {pages:n, spine:r3(d.spine), W:r3(d.W), H:r3(d.H), at:Date.now()}; CS().delta = null; refresh(true);
   toast(n + '쪽, 책등 ' + fmt(d.spine) + 'mm로 확정했습니다. 사양을 표지 공방에 보내 주세요.', 5000);
 }
 function specReport(){ // 표지 탭 '표지 사양'과 '완성 표지 점검' 칸
+  spineWatch();
   const {st, d, n, f} = spineState(), sent = CS().sent, el = $('cs-msg'); if(!el) return;
   const tm = t => dt(t);
   let h = st === 'temp' ? '<b>책등 임시</b> · 지금 ' + n + '쪽, 책등 ' + fmt(d.spine) + 'mm. 원고와 조판이 끝나 쪽수가 더 바뀌지 않을 때 쪽수 확정을 눌러 주세요.'
     : st === 'fixed' ? '<b>확정</b> · ' + n + '쪽, 책등 ' + fmt(d.spine) + 'mm, 펼침 ' + d.W.toFixed(2) + '×' + d.H.toFixed(1) + 'mm (' + tm(f.at) + ' 확정)'
     : '<span class="warnline"><b>확정한 뒤 바뀜</b> · 확정 ' + f.pages + '쪽·책등 ' + fmt(f.spine) + 'mm → 지금 ' + n + '쪽·책등 ' + fmt(d.spine) + 'mm' + (f.pages === n ? ' (날개·재단 여백·판형·종이 설정이 바뀜)' : '') + '. 다시 확정하고 사양을 다시 보내 주세요.</span>';
+  if(n < 50 || n > 978) h += '<br><span class="warnline"><b>검수용 임시본</b> · 부크크 종이책 범위(50~978쪽)를 벗어난 ' + n + '쪽이라 책등을 확정할 수 없습니다. 저장하는 표지 PDF·사양 JSON에 검수용 임시본으로 표시합니다.</span>';
   if(sent){ const cur = sameDims(sent, d, n);
     h += '<br>보낸 사양: ' + sent.pages + '쪽 · 책등 ' + fmt(sent.spine) + 'mm · ' + (sent.provisional ? '임시' : '확정') + ' · ' + tm(sent.at)
       + (!cur ? ' <span class="warnline">→ 보낸 뒤 바뀌었습니다. 다시 보내 주세요.</span>' : sent.provisional && st === 'fixed' ? ' <span class="warnline">→ 임시로 보냈습니다. 확정 사양을 다시 보내 주세요.</span>' : ''); }
+  const bs = spineBasis(), pn = $('cv-pages-note'); if(pn) pn.innerHTML = '책등 계산에 쓴 쪽수: <b>' + n + '쪽</b> (' + bs.text + (bs.src === 'manual' && n !== BOOK.pages.length ? ' · 웹 조판은 ' + BOOK.pages.length + '쪽' : '') + ') · ' + PAPERS[d.pk][0] + (PAPERS[S.cover.paper] ? '' : ' (자동)') + ' → 책등 <b>' + fmt(d.spine) + 'mm</b>, 펼침 <b>' + d.W.toFixed(2) + ' × ' + d.H.toFixed(1) + 'mm</b> · ' + (st === 'fixed' ? '<b>확정</b>' : '<b>임시</b>');
+  const dn = $('cv-delta-note'), dl = CS().delta; if(dn){ dn.hidden = !dl; if(dl) dn.innerHTML = '<span class="warnline">쪽수·종이가 바뀌었습니다' + (dl.released ? (CS().fix ? ' (확정을 풀었다가 내지 PDF 쪽수로 다시 확정했습니다)' : ' (쪽수 확정을 풀었습니다)') : '') + ': ' + dl.from.pages + '쪽 · 책등 ' + fmt(dl.from.spine) + 'mm · 펼침 ' + fmt(dl.from.W) + 'mm → <b>' + dl.to.pages + '쪽 · 책등 ' + fmt(dl.to.spine) + 'mm · 펼침 ' + fmt(dl.to.W) + 'mm</b></span>'; }
+  const ib = $('bt-ipdf-x'); if(ib) ib.hidden = !S.cover.pdf;
+  const A = asmState(), ab = $('asm-box'); if(ab){ ab.hidden = !(A && (A.stale || A.geom)); if(!ab.hidden){ $('asm-msg').innerHTML = A.geom ? '<span class="warnline">조립한 표지와 판형·날개·재단 여백이 달라져 책등만 바꿀 수 없습니다. 펼침 표지 가져오기로 원본에서 다시 조립해 주세요.</span>' : '<span class="warnline">조립한 표지의 책등은 ' + fmt(A.a.spine) + 'mm인데 지금은 ' + fmt(A.d.spine) + 'mm(' + A.d.n + '쪽)입니다.</span> 앞뒤 표지·날개 배치는 그대로 두고 책등만 바꿔 다시 조립합니다. 펼침 폭 ' + fmt(A.a.W) + ' → ' + fmt(A.d.W) + 'mm.'; $('bt-respine').disabled = !!A.geom; } }
   el.innerHTML = h; $('cs-state').textContent = st === 'fixed' ? '· 확정' : st === 'changed' ? '· 확정 뒤 바뀜' : '· 책등 임시';
   const bf = $('bt-fix'); bf.textContent = st === 'changed' ? '지금 쪽수로 다시 확정' : st === 'fixed' ? '확정됨' : '쪽수 확정'; bf.disabled = st === 'fixed'; $('bt-unfix').hidden = !f;
   $('cs-line').value = coverSpec().line;
@@ -2294,6 +2589,7 @@ function minPagesText(n){
 }
 function report(){
   LI_SEC = '';
+  spineWatch();   // 쪽수·종이가 바뀌었으면 쪽수 확정을 먼저 푼다(아래 책등 칸·점검이 풀린 상태를 보게)
   const d = coverDims(), n = BOOK.pages.length, P = S.page, SS = spineState(), SIG = bookSig();
   $('chips').innerHTML = '<span class="chip">판형 <b>' + P.w + '×' + P.h + '</b> mm</span><span class="chip">내지 <b>' + n + '</b>쪽</span><span class="chip' + (SS.st === 'changed' ? ' warn' : '') + '">책등 <b>' + fmt(d.spine) + '</b> mm · ' + (SS.st === 'fixed' ? '확정' : SS.st === 'changed' ? '확정 뒤 바뀜' : '임시') + '</span><span class="chip">표지 펼침 <b>' + d.W.toFixed(2) + '×' + d.H.toFixed(1) + '</b> mm</span>';
   // 글꼴
@@ -2311,7 +2607,7 @@ function report(){
   $('font-report').innerHTML = fr;
   // 표지
   const px = v => Math.round(v/25.4*300);
-  let rows = [['내지 종이', PAPERS[d.pk][0] + (PAPERS[S.cover.paper] ? '' : ' (자동)')], ['부크크 계산식 (' + n + '쪽 ÷ 2 × ' + d.t + ' + 1.6)', fmt(d.est) + ' mm'], ['적용한 책등', fmt(d.spine) + ' mm' + (parseFloat(S.cover.spine) > 0 ? ' (직접 입력)' : '')],
+  let rows = [['내지 종이', PAPERS[d.pk][0] + (PAPERS[S.cover.paper] ? '' : ' (자동)')], ['부크크 계산식 (' + coverPages() + '쪽 ÷ 2 × ' + d.t + ' + 1.6)', fmt(d.est) + ' mm'], ['적용한 책등', fmt(d.spine) + ' mm' + (parseFloat(S.cover.spine) > 0 ? ' (직접 입력)' : '')],
     ['표지 펼침 크기 (재단 여백 포함)', d.W.toFixed(2) + ' × ' + d.H.toFixed(1) + ' mm'], ['가로 구성', comp(d)], ['300dpi 기준 필요한 그림 크기', px(d.W) + ' × ' + px(d.H) + ' px']];
   let cw = null;
   if(COVER){
@@ -2485,7 +2781,7 @@ function build(){
   field('g-font','본문 글꼴','fonts.body','select',[]); field('g-font','제목 글꼴','fonts.head','select',[]); field('g-font','굵은 글씨 글꼴','fonts.bold','select',[]);
   field('g-cover0','날개 있음','cover.flap','check');
   field('g-cover','날개 폭','cover.flapW','number'); field('g-cover','재단 여백','cover.bleed','number',{step:0.5});
-  field('g-cover','내지 종이','cover.paper','select',[['auto','자동'],['y100','미색모조지 100g'],['y80','미색모조지 80g'],['w100','백색모조지 100g'],['w80','백색모조지 80g']]); field('g-cover','책등 직접 입력','cover.spine','text');
+  field('g-cover','내지 종이','cover.paper','select',[['auto','자동'],['y100','미색모조지 100g'],['y80','미색모조지 80g'],['w100','백색모조지 100g'],['w80','백색모조지 80g']]); field('g-cover','책등 직접 입력','cover.spine','text'); field('g-cover','제출할 내지 PDF 쪽수 (비우면 웹 쪽수)','cover.pages','text',{wide:true});
   field('g-cover-fit','그림 맞추는 방법','cover.fit','select',[['stretch','펼침 크기에 꼭 맞게 늘리기'],['cover','비율 유지, 넘치면 자르기'],['contain','비율 유지, 남으면 흰 여백']]);
   field('g-photo','본문 사진을 흑백으로 바꿔 넣기 (흑백 내지로 인쇄할 때)','photo.gray','check');
   field('g-proof0','배열','proof.mode','select',[['booklet','소책자로 배열 (종이 한 면에 2쪽, 반으로 접기)'],['pages','쪽 순서대로 (Acrobat·프린터의 소책자 인쇄 기능으로 뽑기)']]);
@@ -2495,7 +2791,7 @@ function build(){
   document.querySelectorAll('[data-p]').forEach(el => el.addEventListener(el.tagName==='SELECT' || el.type==='checkbox' ? 'change' : 'input', () => {
     const p = el.dataset.p; let v = el.type==='checkbox' ? el.checked : el.value;
     if(el.type==='number'){ v = parseFloat(v); if(!isFinite(v)) return; }
-    set(p, v);
+    set(p, v); if(p==='cover.pages') S.cover.pagesSrc = pagesSrcFor(v);
     if(p==='page.preset' && PRESET[v]){ const a = PRESET[v]; Object.assign(S.page, {w:a[0],h:a[1],mt:a[2],mb:a[3],mi:a[4],mo:a[5]}); if(v==='A4' && S.cover.flap){ S.cover.flap = false; toast('A4 판형은 부크크에서 날개를 쓸 수 없어 날개를 껐습니다.'); } fill(); }
     if(p==='page.w' || p==='page.h'){ S.page.preset = '직접'; $('f-page-preset').value = '직접'; }
     refresh();
@@ -2969,10 +3265,13 @@ function proofReport(){
 }
 async function coverPdf(){
   const {PDFDocument, cmyk} = PDFLib, doc = await PDFDocument.create(), d = coverDims(), W = d.W*MM, H = d.H*MM, sp = coverSpec();
-  doc.setTitle((S.meta.title || '책') + ' 표지'); doc.setAuthor(S.meta.author || ''); doc.setSubject(sp.line); doc.setKeywords([sp.line]); doc.setCreator('온나래 책공방 ' + APP_VER);
+  doc.setTitle((S.meta.title || '책') + ' 표지' + (sp.review.only ? ' (검수용 임시본)' : '')); doc.setAuthor(S.meta.author || ''); doc.setSubject(sp.line); doc.setKeywords([sp.line].concat(sp.review.only ? ['검수용 임시본'] : [])); doc.setCreator('온나래 책공방 ' + APP_VER);
   const pg = doc.addPage([W,H]); pg.drawRectangle({x:0,y:0,width:W,height:H,color:cmyk(0,0,0,0)});
   const pic = await embedPic(doc, COVER.dataUrl, COVER.img), r = coverPlace(d, W, H);
   pg.drawImage(pic, {x:r.x, y:H-r.y-r.h, width:r.w, height:r.h});
+  if(sp.review.only){ // 재단 여백(잘려 나가는 곳)에 영문으로 검수용 표시: 인쇄 영역은 건드리지 않는다
+    const hv = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold), tx = 'REVIEW COPY - NOT FOR PRINT - ' + sp.interior.pages + ' pages (Bookk min 50), spine provisional';
+    pg.drawText(tx, {x:10*MM, y:0.9*MM, size:5.5, font:hv, color:PDFLib.rgb(0.85, 0.1, 0.1)}); pg.drawText(tx, {x:10*MM, y:H - 2.0*MM, size:5.5, font:hv, color:PDFLib.rgb(0.85, 0.1, 0.1)}); }
   return await doc.save();
 }
 /* ---------- PDF 다시 읽어 검사 (6단계) ----------
@@ -3226,7 +3525,7 @@ const MANUAL = [
   ['check', '부크크 규격체크에서 내지 PDF와 표지가 모두 통과했습니다.', 'all']
 ];
 function manualKey(kind, sig){
-  const c = CS().cover, ck = c ? (c.name || '') + '@' + (c.at || '') : COVER ? 'c' + COVER.w + 'x' + COVER.h : '-', dims = BOOK.pages.length + '/' + fmt(coverDims().spine) + '/' + S.page.w + 'x' + S.page.h + '/' + (S.cover.flap ? 1 : 0);
+  const c = CS().cover, ck = c ? (c.name || '') + '@' + (c.at || '') : COVER ? 'c' + COVER.w + 'x' + COVER.h : '-', dims = coverPages() + '/' + fmt(coverDims().spine) + '/' + S.page.w + 'x' + S.page.h + '/' + (S.cover.flap ? 1 : 0);
   if(kind === 'meta'){ const m = S.meta, p = S.pub || {}; return [m.title, m.subtitle, m.author, m.date, m.isbn, p.house, p.publisher].join('|'); }
   if(kind === 'imgs') return Object.keys(S.images || {}).sort().join(',') + '#' + Object.keys(USE || {}).sort().join(',');
   return kind === 'sig' ? sig : kind === 'cover' ? ck : kind === 'dims' ? dims : sig + '|' + ck;
@@ -3372,7 +3671,7 @@ async function buildIdmlZip(){
 }
 
 /* ---------- 오프라인 파일 ---------- */
-const OFFLINE = !!window.ONNARAE_OFFLINE, APP_VER = '2026.11.21e';
+const OFFLINE = !!window.ONNARAE_OFFLINE, APP_VER = '2026.11.21g';
 function runInline(id){ const src = $(id); if(!src) throw new Error('파일 안의 도구(' + id + ')를 찾지 못했습니다.'); const sc = document.createElement('script'); sc.textContent = src.textContent; document.head.appendChild(sc); }
 const b64bytes = b => { const s = atob(b.replace(/\s+/g,'')), u = new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i] = s.charCodeAt(i); return u; };
 function fontBytes(u){
@@ -3579,7 +3878,7 @@ function mkSrc(man, conv, name){
   return {bookId:b.id, revision:b.revision, revisedAt:b.revisedAt||'', status:b.status||'', exportedAt:man.exportedAt||'', importedAt:new Date().toISOString(), file:name||'',
     stats:{sections:man.stats.sections, pieces:man.stats.pieces, lines:man.stats.lines, chars:man.stats.chars}, heads:conv.heads, base:conv.text, man, checks:[], anchors:[], changes:[]};
 }
-const keepSettings = st => JSON.parse(JSON.stringify({page:st.page, body:st.body, head:st.head, pn:st.pn, front:st.front, poem:st.poem, toc:{...(st.toc || {}), ov:{}}, style:st.style, pub:st.pub, fonts:st.fonts, cover:{...st.cover, spine:''}, photo:st.photo || {}, proof:st.proof || {}}));
+const keepSettings = st => JSON.parse(JSON.stringify({page:st.page, body:st.body, head:st.head, pn:st.pn, front:st.front, poem:st.poem, toc:{...(st.toc || {}), ov:{}}, style:st.style, pub:st.pub, fonts:st.fonts, cover:{...st.cover, spine:'', pages:'', pagesSrc:'', pdf:null, last:null}, photo:st.photo || {}, proof:st.proof || {}}));
 function blankState(base){ const st = merge(DEF(), keepSettings(base)); st.text = ''; st.meta = {...DEF().meta, date:base.meta.date, title:'', author:''}; st.images = {}; st.pics = {}; st.request = []; st.wid = ''; st.src = null; return st; }
 function workFromMan(base, man, name, chk){
   const st = blankState(base);
@@ -4245,6 +4544,11 @@ async function init(){
     fontOptions(); refresh(true); };
   $('in-cover').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return;
     try{ await useCoverFile(f); }catch(err){ console.error(err); toast(f.name + ': ' + err.message, 6000); } };
+  $('in-ipdf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if(!f) return; try{ await useInteriorPdf(f); }catch(err){ console.error(err); toast(f.name + ': ' + err.message, 6000); } };
+  $('bt-ipdf-x').onclick = () => { S.cover.pdf = null; S.cover.pagesSrc = pagesSrcFor(S.cover.pages); CS().fix = null; refresh(true); toast('내지 PDF 기준을 지웠습니다. 쪽수는 그대로 두지만 직접 입력한 쪽수라 책등 임시입니다.'); };
+  $('bt-respine').onclick = e => { const b = e.currentTarget; b.disabled = true; respineCover().catch(err => { console.error(err); toast(err.message, 6000); }).finally(() => { b.disabled = false; }); };
+  $('bt-cset').onclick = async e => { const b = e.currentTarget, m = $('cset-msg'); b.disabled = true; m.textContent = '표지 PDF와 사양 JSON 만드는 중'; try{ m.textContent = await saveCoverSet(); }catch(err){ console.error(err); m.textContent = '저장하지 못했습니다: ' + err.message; toast(err.message, 6000); } b.disabled = false; };
+  $('bt-spread').onclick = () => spreadImport().catch(err => { console.error(err); toast(err.message, 6000); });
   $('bt-cover-x').onclick = () => { COVER = null; CS().cover = null; refresh(true); };
   $('bt-fix').onclick = () => fixSpine();
   $('bt-unfix').onclick = () => { CS().fix = null; refresh(true); toast('확정을 풀었습니다. 이제부터 보내는 사양은 책등 임시입니다.'); };
