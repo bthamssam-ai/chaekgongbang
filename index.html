@@ -877,7 +877,8 @@ async function buildIdml(baseBuf, model, linkFiles){
   const halfId = uid(), titleId = uid(), tocId = tocItems.length ? uid() : null, copyId = uid();
   files['Stories/Story_' + halfId + '.xml'] = storyHead(halfId) + paraXml('반표제지', runsOf(model.title, plain), {last:true}) + tail;
   files['Stories/Story_' + titleId + '.xml'] = storyHead(titleId) + paraXml('속표지_제목', runsOf(model.title, plain), {last:false}) + paraXml('속표지_저자', runsOf((model.author || '') + (model.author ? ' 지음' : ''), plain), {last:true}) + tail;
-  if(tocId && tocItems.length > 26) throw new Error('차례 항목이 ' + tocItems.length + '개라 한 쪽(26줄)을 넘습니다. 차례가 여러 쪽인 책은 다음 판에서 지원합니다.');
+  const TOCCAP = Math.floor(26 * N.th / O.th);   // 차례 한 쪽에 들어가는 줄 수: A5(글 쓰는 자리 높이 464.88pt)에서 26줄, 다른 판형은 높이에 비례
+  if(tocId && tocItems.length > TOCCAP) throw new Error('차례 항목이 ' + tocItems.length + '개라 이 판형의 차례 한 쪽(' + TOCCAP + '줄)을 넘습니다. 차례가 여러 쪽인 책은 다음 판에서 지원합니다. 내지 탭 차례 설정에서 항목을 줄이거나 숨겨 주세요.');
   { const rest = []; (CP.lines || []).forEach(l => rest.push(l[0] + '\t' + l[1])); if((CP.notes || []).length){ rest.push(''); CP.notes.forEach(n => rest.push(n)); }
     const inner = '<CharacterStyleRange AppliedCharacterStyle="' + NOCS + '" FontStyle="Bold"><Content>' + xe(model.title) + '</Content><Br /></CharacterStyleRange><CharacterStyleRange AppliedCharacterStyle="' + NOCS + '"><Br />' +
       rest.map((t, i) => (t ? '<Content>' + xe(t) + '</Content>' : '') + (i < rest.length - 1 ? '<Br />' : '')).join('') + '</CharacterStyleRange>';
@@ -1005,6 +1006,13 @@ async function buildIdml(baseBuf, model, linkFiles){
     files['Resources/Preferences.xml'] = pf;
     files['Resources/Styles.xml'] = files['Resources/Styles.xml'].replace(/<Position type="unit">311\.811\d*<\/Position>/g, '<Position type="unit">' + num(N.tw) + '</Position>');
   }
+
+  /* 6-3) 기준선 격자: 바탕 틀의 문단 스타일은 모두 '기준선 격자에 맞춤'이고 격자 간격이 17pt(기준 행간)다. 본문 행간이 17pt가 아니면
+     (예: 글자 10pt × 1.85 = 18.5pt) 줄마다 격자 두 칸(34pt)씩 차지해 쪽수가 크게 늘어난다(시험 14에서 확인). 격자 간격을 본문 행간에 맞춰 준다. 17pt면 그대로. */
+  { const gl = size * B.leading;
+    if(Math.abs(gl - 17) > 0.001){ const pf = files['Resources/Preferences.xml'];
+      if(!/<GridPreference [^>]*BaselineDivision="/.test(pf)) throw new Error('Preferences.xml에서 BaselineDivision을 찾지 못했습니다.');
+      files['Resources/Preferences.xml'] = pf.replace(/<GridPreference [^>]*>/, tg => setAttr(tg, 'BaselineDivision', num(gl))); } }
 
   /* 7) zip: mimetype 첫 항목·무압축 */
   const out = new JSZip();
@@ -3260,7 +3268,7 @@ function idmlModel(book){
     }
   }
   const hasToc = book.tocIdx.length > 0;
-  if(book.tocIdx.length > 1) throw new Error('차례가 ' + book.tocIdx.length + '쪽입니다. 이번 판은 차례 한 쪽(26줄)까지만 내보냅니다. 내지 탭 차례 설정에서 항목을 줄이거나 숨겨 주세요.');
+  // 책공방 화면의 차례가 몇 쪽인지는 상관없다(IDML 차례는 바탕 틀의 한 쪽짜리 글상자). 줄 수가 넘는지는 생성기가 판형별로 따진다.
   const genFront = hasToc ? 6 : 4, shift = genFront - book.bodyStart;   // 생성기 앞붙이는 4쪽(차례가 있으면 6쪽). 책공방 앞붙이와 다르면 차례 쪽번호를 옮김
   const toc = hasToc ? book.toc.map(e => ({lv:e.lv === 2 ? 1 : 0, s:(e.lab ? e.lab + ' ' : '') + e.s, page:e.n + shift})) : [];
   let lastBody = -1; book.pages.forEach((p, i) => { if(p.kind === 'body') lastBody = i; });
