@@ -772,6 +772,17 @@ async function buildIdml(baseBuf, model, linkFiles){
   const bodyAttrs = {PointSize:num(size), Tracking:String(trk), FirstLineIndent:num(B.indent * size), Leading:num(size * B.leading)};
   styles = patchStyle(styles, '본문', bodyAttrs);
   styles = patchStyle(styles, '본문_첫줄들임없음', {PointSize:num(size), Tracking:String(trk), Leading:num(size * B.leading)});
+  /* 글꼴: 바탕 틀은 본문·제목이 나눔명조, 굵게가 나눔명조 Bold로 고정돼 있다. 책공방에서 고른 글꼴이 나눔명조·나눔고딕(보통·굵게)이면 그대로 따른다.
+     그 밖의 글꼴(직접 올린 파일 등)은 바탕 틀 값을 그대로 둔다(index.html이 검수목록에 적음). model.fonts = {body, head, bold}: nm·nmb·ng·ngb */
+  { const FK = {nm:['나눔명조', 'Regular'], nmb:['나눔명조', 'Bold'], ng:['나눔고딕', 'Regular'], ngb:['나눔고딕', 'Bold']}, MF = model.fonts || {};
+    const setFont = (tagName, name, k) => {
+      const tag = openTag(styles, tagName, tagName + '/' + name), t = setAttr(tag, 'FontStyle', FK[k][1]);
+      let out = styles.replace(tag, () => t); const i = out.indexOf(t), j = out.indexOf('</' + tagName + '>', i); let seg = out.slice(i, j);
+      if(!/<AppliedFont type="string">[^<]*<\/AppliedFont>/.test(seg)) throw new Error(name + ' 스타일에서 글꼴 자리를 찾지 못했습니다.');
+      seg = seg.replace(/(<AppliedFont type="string">)[^<]*(<\/AppliedFont>)/, (m, a, b) => a + FK[k][0] + b); styles = out.slice(0, i) + seg + out.slice(j); };
+    if(FK[MF.body]) ['본문', '본문_첫줄들임없음', '본문_가운데', '본문_오른쪽', '인용'].forEach(n => setFont('ParagraphStyle', n, MF.body));
+    if(FK[MF.head]) ['장제목', '소제목', '반표제지', '속표지_제목', '차례_제목'].forEach(n => setFont('ParagraphStyle', n, MF.head));
+    if(FK[MF.bold]) setFont('CharacterStyle', '굵게', MF.bold); }
   if(model.head && model.head.chSink != null){ // 장 시작 내림: 장시작여백의 SpaceAfter (기준: 28%에서 113.64pt)
     const textH = P.h - P.mt - P.mb, sa = model.head.chSink / 100 * textH * MM - 16.53;
     styles = patchStyle(styles, '장시작여백', {SpaceAfter:num(Math.max(0, sa))});
@@ -3291,8 +3302,12 @@ function idmlModel(book){
   if(S.style === 'poem') N('책 모양이 시집입니다. 이번 판은 산문 책 구성으로 내보내므로 시의 행·연 구분과 작품 쪽 나눔이 없습니다.');
   if(S.style === 'info') N('책 모양이 정보 책입니다. 이번 판은 산문 책 구성으로 내보냅니다.');
   const fnm = k => (F[k] && F[k].name) || k;
-  if(S.fonts.body !== 'nm') N('본문 글꼴(' + fnm(fontKey('body')) + ')은 반영하지 못했습니다. 바탕 틀의 나눔명조로 나갑니다.');
-  if(S.fonts.head !== 'nmb') N('제목 글꼴(' + fnm(fontKey('head')) + ')은 반영하지 못했습니다. 바탕 틀의 나눔명조 굵게로 나갑니다.');
+  const IDML_FK = ['nm', 'nmb', 'ng', 'ngb'];   // 생성기가 따를 수 있는 글꼴: 나눔명조·나눔고딕(보통·굵게). 그 밖의 글꼴은 바탕 틀 값
+  if(!['nm', 'ng'].includes(fontKey('body'))) N('본문 글꼴(' + fnm(fontKey('body')) + ')은 반영하지 못했습니다. 바탕 틀의 나눔명조로 나갑니다.');
+  else if(fontKey('body') === 'ng') N('본문 글꼴이 나눔고딕이라 IDML도 나눔고딕으로 내보냅니다. 쪽수 어림은 나눔명조 기준이라 인디자인에서 쪽수가 더 달라질 수 있습니다.');
+  if(!IDML_FK.includes(fontKey('head'))) N('제목 글꼴(' + fnm(fontKey('head')) + ')은 반영하지 못했습니다. 바탕 틀의 나눔명조 굵게로 나갑니다.');
+  const idmlBold = boldKey();
+  if(!IDML_FK.includes(idmlBold)) N('굵은 글씨 글꼴(' + fnm(idmlBold) + ')은 반영하지 못했습니다. 나눔명조 굵게로 나갑니다.');
   if(B.align !== 'justify') N('본문 정렬(' + B.align + ')은 반영하지 못했습니다. 양끝 맞춤으로 나갑니다.');
   if(+B.paraGap) N('문단 사이 간격(' + B.paraGap + '줄)은 반영하지 못했습니다.');
   if(+H.chSize !== D.head.chSize || +H.subSize !== D.head.subSize || H.chAlign !== D.head.chAlign) N('장 제목·소제목의 크기와 정렬(장 ' + H.chSize + 'pt, 소제목 ' + H.subSize + 'pt, ' + H.chAlign + ')은 반영하지 못했습니다. 바탕 틀 값(장 15pt, 소제목 11pt, 왼쪽)으로 나갑니다.');
@@ -3320,7 +3335,7 @@ function idmlModel(book){
   const model = {
     title:m.title || '제목', author:m.author || '', page:{w:S.page.w, h:S.page.h, mt:S.page.mt, mb:S.page.mb, mi:S.page.mi, mo:S.page.mo},
     body:{size:+B.size, track:+B.track || 0, indent:+B.indent, leading:+B.leading, firstIndent:B.firstIndent !== false, byWord:!!B.wordBreak},
-    head:{chSink:sinkPct}, front:{tocTitle:S.toc.title || '차례', toc}, copyright:{lines, notes:cnotes}, bodyPages, notes, paras
+    fonts:{body:fontKey('body'), head:fontKey('head'), bold:idmlBold}, head:{chSink:sinkPct}, front:{tocTitle:S.toc.title || '차례', toc}, copyright:{lines, notes:cnotes}, bodyPages, notes, paras
   };
   return {model, bookPages:book.pages.length, bodyStart:book.bodyStart};
 }
@@ -3357,7 +3372,7 @@ async function buildIdmlZip(){
 }
 
 /* ---------- 오프라인 파일 ---------- */
-const OFFLINE = !!window.ONNARAE_OFFLINE, APP_VER = '2026.11.21d';
+const OFFLINE = !!window.ONNARAE_OFFLINE, APP_VER = '2026.11.21e';
 function runInline(id){ const src = $(id); if(!src) throw new Error('파일 안의 도구(' + id + ')를 찾지 못했습니다.'); const sc = document.createElement('script'); sc.textContent = src.textContent; document.head.appendChild(sc); }
 const b64bytes = b => { const s = atob(b.replace(/\s+/g,'')), u = new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i] = s.charCodeAt(i); return u; };
 function fontBytes(u){
