@@ -750,14 +750,20 @@ async function buildIdml(baseBuf, model, linkFiles){
   };
   const geoBodyFrame = (f, side) => geoFrame(f, side, side === 'left' ? N.mo : N.mi, N.mt, side === 'left' ? N.W - N.mi : N.W - N.mo, N.H - N.mb);
   /* 마스터: 본문 글상자·머리글·쪽번호. 머리글은 글 쓰는 자리 위 11mm쯤(위 여백에서 31.18pt 위), 쪽번호는 글 쓰는 자리 아래 바깥쪽(아래에서 28.35pt 아래) 폭 30mm */
-  const geoMaster = xml => {
+  const GEOWARN = [], GEOSEEN = new Set();
+  const geoMaster = (xml, seen) => {
     xml = xml.replace(/<Page [\s\S]*?<\/Page>/g, pg => geoPage(pg, /ItemTransform="1 0 0 1 -/.test(pg.match(/<Page [^>]*>/)[0]) ? 'left' : 'right'));
-    const PN = 85.03937007874016, yb = N.H - N.mb;
+    const PN = 85.03937007874016, yb = N.H - N.mb, EDGE = 8.503937007874016, FH = 14.173228346456693;   // EDGE: 쪽 가장자리에서 3mm 안쪽까지만 쓴다
+    /* 머리글·쪽번호가 쪽 밖으로 나가지 않게 한다: 위 여백이 좁으면 머리글을 아래로, 아래 여백이 좁으면 쪽번호를 위로 밀어 쪽 안(가장자리 3mm)에 둔다.
+       밀다 보니 본문 글상자와 겹치게 되면 GEOWARN에 적어 검수목록에 알린다. */
+    let hy0 = N.mt - 31.18110236220473, hy1 = N.mt - 17.00787401574803, py0 = yb + 28.34645669291339, py1 = yb + 42.51968503937008;
+    if(hy0 < EDGE){ hy0 = EDGE; hy1 = EDGE + FH; if(hy1 > N.mt - 1) GEOWARN.push('위 여백(' + P.mt + 'mm)이 좁아 머리글이 본문 첫 줄과 겹치거나 붙습니다. 위 여백을 넓히거나 머리글을 끄세요.'); else GEOWARN.push('위 여백(' + P.mt + 'mm)이 좁아 머리글을 쪽 가장자리 쪽으로 옮겼습니다.'); }
+    if(py1 > N.H - EDGE){ py1 = N.H - EDGE; py0 = py1 - FH; if(py0 < yb + 1) GEOWARN.push('아래 여백(' + P.mb + 'mm)이 좁아 쪽번호가 본문 마지막 줄과 겹치거나 붙습니다. 아래 여백을 넓히세요.'); else GEOWARN.push('아래 여백(' + P.mb + 'mm)이 좁아 쪽번호를 위로 옮겼습니다.'); }
     const R = {
       u14c:['left', N.mo, N.mt, N.W - N.mi, N.H - N.mb], u14f:['right', N.mi, N.mt, N.W - N.mo, N.H - N.mb],
-      u3a0:['left', N.mo, N.mt - 31.18110236220473, N.W - N.mi, N.mt - 17.00787401574803], u3ce:['right', N.mi, N.mt - 31.18110236220473, N.W - N.mo, N.mt - 17.00787401574803],
-      u3b7:['left', N.mo, yb + 28.34645669291339, N.mo + PN, yb + 42.51968503937008], u3e6:['right', N.W - N.mo - PN, yb + 28.34645669291339, N.W - N.mo, yb + 42.51968503937008]};
-    return xml.replace(/<TextFrame [\s\S]*?<\/TextFrame>/g, f => { const id = (f.match(/<TextFrame [^>]*Self="([^"]*)"/) || [])[1], r = R[id]; return r ? geoFrame(f, r[0], r[1], r[2], r[3], r[4]) : f; });
+      u3a0:['left', N.mo, hy0, N.W - N.mi, hy1], u3ce:['right', N.mi, hy0, N.W - N.mo, hy1],
+      u3b7:['left', N.mo, py0, N.mo + PN, py1], u3e6:['right', N.W - N.mo - PN, py0, N.W - N.mo, py1]};
+    return xml.replace(/<TextFrame [\s\S]*?<\/TextFrame>/g, f => { const id = (f.match(/<TextFrame [^>]*Self="([^"]*)"/) || [])[1], r = R[id]; if(!r) return f; seen.add(id); return geoFrame(f, r[0], r[1], r[2], r[3], r[4]); });
   };
 
   /* 1) 스타일: 책공방 본문 설정 → 문단 스타일 값 */
@@ -999,7 +1005,9 @@ async function buildIdml(baseBuf, model, linkFiles){
 
   /* 6-2) 판형·여백이 바탕 틀(A5·기본 여백)과 다르면 마스터·문서 설정·차례 탭 위치를 새 크기로 고친다 */
   if(GEN){
-    keepMasters.forEach(n => { files[n] = geoMaster(files[n]); });
+    keepMasters.forEach(n => { files[n] = geoMaster(files[n], GEOSEEN); });
+    const need = ['u14c', 'u14f', 'u3a0', 'u3ce', 'u3b7', 'u3e6'].filter(id => !GEOSEEN.has(id));
+    if(need.length) throw new Error('바탕 틀의 본문 마스터에서 글상자 ' + need.join(', ') + '을(를) 찾지 못해 판형을 맞출 수 없습니다. 바탕 틀이 바뀌었는지 확인하세요.');
     let pf = files['Resources/Preferences.xml'];
     pf = pf.replace(/<DocumentPreference [^>]*>/, tg => { tg = setAttr(tg, 'PageHeight', num(N.H)); return setAttr(tg, 'PageWidth', num(N.W)); });
     pf = pf.replace(/<MarginPreference [^>]*\/>/, tg => { tg = setAttr(tg, 'Top', num(N.mt)); tg = setAttr(tg, 'Bottom', num(N.mb)); tg = setAttr(tg, 'Left', num(N.mi)); return setAttr(tg, 'Right', num(N.mo)); });
@@ -1026,6 +1034,7 @@ async function buildIdml(baseBuf, model, linkFiles){
   const L = ['# 검수목록 — ' + model.title, '', '## 쪽 구성',
     '- 전체 ' + T + '쪽: 앞붙이 ' + frontN + '쪽(1 반표제지, 3 속표지' + (tocId ? ', 5 차례' : '') + ', 나머지 빈 쪽), 본문 ' + (frontN + 1) + '~' + (frontN + bodyN) + '쪽(글상자 ' + bodyN + '개), 판권 ' + T + '쪽(마지막 왼쪽)',
     '- 본문 쪽 수 ' + bodyN + ': ' + (estimated ? '생성기가 글자 폭·쪽 채우기로 어림한 값입니다(인디자인 실제와 대조해 보정)' + (askedBP && askedBP !== est.pages ? '. 책공방 화면의 쪽 수는 ' + askedBP + '쪽이라 다릅니다' : '') + (spare ? '. 마지막 쪽 아래 여유가 적어 한 쪽을 더 두었습니다' : '') : '책공방이 센 쪽 수입니다(bodyPagesForce)') + '. 인디자인은 줄바꿈이 달라 쪽 수가 달라질 수 있습니다(넘치면 쪽이 자동 추가되고, 남는 빈 본문 쪽은 직접 지웁니다)',
+    ...[...new Set(GEOWARN)].map(w => '- **' + w + '**'),
     ...(GEN ? ['- 판형 ' + (SIZENAME || '') + ' ' + P.w + '×' + P.h + 'mm, 여백 위 ' + P.mt + '·아래 ' + P.mb + '·안쪽 ' + P.mi + '·바깥쪽 ' + P.mo + 'mm: 바탕 틀(A5·기본 여백)에서 쪽 크기·글상자·머리글·쪽번호 위치를 **계산해서 옮긴 것**입니다. 쪽수 어림은 A5에서만 인디자인 실측과 맞춰 봤으므로, 이 판형에서는 본문 쪽수가 ±1~2쪽 다를 수 있습니다. 인디자인에서 열어 쪽수·차례 쪽번호·머리글·쪽번호 자리를 꼭 확인하세요'] : []),
     '- 쪽이 바뀐 뒤에는 **판권이 짝수 쪽(마지막 왼쪽)에 있는지** 확인하세요. 자동으로 맞춰지지 않습니다',
     '- 빈 쪽 자동 삭제는 ' + (model.keepEmptyPages !== false ? '**꺼 두었습니다**(인디자인이 자동 삭제하면 판권이 홀수 쪽으로 옮겨지고 PDF 내보내기 중 종료되는 일이 시험에서 있었음). 본문이 끝난 뒤 남는 **빈 본문 쪽은 직접 지우세요**(지운 뒤 판권이 짝수 쪽인지 확인)' : '켜 둔 상태입니다') + '', '',
@@ -1046,7 +1055,7 @@ async function buildIdml(baseBuf, model, linkFiles){
   L.push('', '## 일반 문단으로 내보낸 항목(아직 지원하지 않는 종류)');
   CK.flat.forEach(x => L.push('- ' + x)); if(!CK.flat.length) L.push('- 없음');
   L.push('', '## 글자 수 대조', '- 본문 스토리 글자(공백·U+200B 제외): ' + chars + '자. 책공방 원고의 같은 기준 글자 수와 비교하세요');
-  const info = {bodyStory:bodyId, paragraphs:paras.length, links:linkOut.map(l => l.name), chars, pages:T, front:frontN, bodyPages:bodyN, estimated, est:{pages:est.pages, fill:+est.fill.toFixed(3), spare, bookshopPages:askedBP, starts:est.starts.map(s => frontN + s.page)}, warnImg:warnImg.length, flat:CK.flat.length, scenes:CK.scenes, sceneGap:CK.sceneGap, sceneEmpty:CK.sceneEmpty, keepImg:CK.keepImg, freeImg:CK.freeImg, sceneJsx:sceneJsx(), tocJsx:tocJsx(), checklist:L.join('\n') + '\n'};
+  const info = {bodyStory:bodyId, paragraphs:paras.length, links:linkOut.map(l => l.name), chars, pages:T, front:frontN, bodyPages:bodyN, estimated, est:{pages:est.pages, fill:+est.fill.toFixed(3), spare, bookshopPages:askedBP, starts:est.starts.map(s => frontN + s.page)}, warnImg:warnImg.length, geoWarn:[...new Set(GEOWARN)], flat:CK.flat.length, scenes:CK.scenes, sceneGap:CK.sceneGap, sceneEmpty:CK.sceneEmpty, keepImg:CK.keepImg, freeImg:CK.freeImg, sceneJsx:sceneJsx(), tocJsx:tocJsx(), checklist:L.join('\n') + '\n'};
   return {buf:await out.generateAsync({type:IS_NODE ? 'nodebuffer' : 'uint8array', compression:'DEFLATE'}), info};
 }
 
@@ -2373,7 +2382,7 @@ function report(){
   ck += parseFloat(S.cover.spine)>0 ? li('ok','좋음','책등 ' + fmt(d.spine) + 'mm (직접 넣은 값). 표지 가로 구성: ' + comp(d))
     : li('ok','좋음','책등 ' + fmt(d.spine) + 'mm (부크크 계산식, ' + PAPERS[d.pk][0] + '). 부크크 도서형태 화면의 두께, 내지 종이와 같은지 확인해 주세요. 표지 가로 구성: ' + comp(d));
   LI_SEC = 'page';
-  if(S.src || (S.request && S.request.length)) ck += li('info','참고','쪽수 ' + n + '쪽은 책공방이 실제로 짠 쪽수입니다. 글쓰기 사이트에서 본 예상 쪽수와 다를 수 있고, 부크크와 표지 사양에는 이 쪽수를 씁니다.');
+  if(S.src || (S.request && S.request.length)) ck += li('info','참고','쪽수 ' + n + '쪽은 책공방이 실제로 짠 쪽수입니다. 글쓰기 사이트에서 본 예상 쪽수와 다를 수 있고, 부크크와 표지 사양에는 이 쪽수를 씁니다. 내지를 인디자인(IDML)으로 마감하면 쪽수가 달라지므로, 그때는 인디자인의 최종 쪽수로 책등과 부크크 쪽수를 다시 정하세요.');
   { const A = S.audit;
     LI_SEC = 'pdf';
     ck += !A ? li('warn','확인','내지 PDF를 아직 다시 읽어 검사하지 않았습니다. 아래 ‘PDF 다시 읽어 검사’에서 내지 PDF 검사를 눌러 주세요(내지 PDF를 저장하면 자동으로 검사합니다).')
@@ -3348,7 +3357,7 @@ async function buildIdmlZip(){
 }
 
 /* ---------- 오프라인 파일 ---------- */
-const OFFLINE = !!window.ONNARAE_OFFLINE, APP_VER = '2026.11.21c';
+const OFFLINE = !!window.ONNARAE_OFFLINE, APP_VER = '2026.11.21d';
 function runInline(id){ const src = $(id); if(!src) throw new Error('파일 안의 도구(' + id + ')를 찾지 못했습니다.'); const sc = document.createElement('script'); sc.textContent = src.textContent; document.head.appendChild(sc); }
 const b64bytes = b => { const s = atob(b.replace(/\s+/g,'')), u = new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i] = s.charCodeAt(i); return u; };
 function fontBytes(u){
@@ -4173,8 +4182,10 @@ async function init(){
   $('ck-gray').onchange = show;
   $('bt-idml').onclick = async e => { const btn = e.currentTarget, msg = $('idml-msg'), list = $('idml-list'), old = btn.textContent; btn.disabled = true; list.innerHTML = ''; msg.textContent = 'IDML 만드는 중';
     try{ const r = await buildIdmlZip(); await saveFile(r.name, r.blob); const I = r.info;
-      msg.textContent = '저장했습니다. 전체 ' + I.pages + '쪽(앞붙이 ' + I.front + '쪽 + 본문 ' + I.bodyPages + '쪽 + 판권), 그림 ' + I.links.length + '장. 본문 쪽수는 책공방이 센 값이라 인디자인에서 달라질 수 있습니다.';
-      const rows = [['warn', '확인', '인디자인에서 열면 먼저 마지막 본문 쪽과 판권 쪽(짝수 쪽)을 확인하세요. 본문 뒤에 빈 쪽이 남으면 직접 지웁니다.']];
+      msg.textContent = '저장했습니다. IDML 전체 ' + I.pages + '쪽(앞붙이 ' + I.front + '쪽 + 본문 ' + I.bodyPages + '쪽 + 판권), 그림 ' + I.links.length + '장. 책공방 화면은 ' + r.bookPages + '쪽입니다' + (I.pages !== r.bookPages ? '(쪽수가 다릅니다)' : '') + '. 인디자인에서 열면 쪽수가 또 달라질 수 있습니다.';
+      const rows = [['warn', '확인', '책등·표지·부크크 쪽수는 인디자인에서 내지를 마감한 뒤의 최종 쪽수로 다시 정하세요. 책공방의 쪽수(' + r.bookPages + '쪽)와 이 IDML의 쪽수(' + I.pages + '쪽)는 세는 방식이 달라 같지 않을 수 있고, 표지 탭의 책등은 책공방 쪽수 기준입니다.'],
+        ['warn', '확인', '인디자인에서 열면 먼저 마지막 본문 쪽과 판권 쪽(짝수 쪽)을 확인하세요. 본문 뒤에 빈 쪽이 남으면 직접 지웁니다.']];
+      (I.geoWarn || []).forEach(x => rows.push(['warn', '확인', x]));
       if(r.model.front.toc.length) rows.push(['warn', '확인', '차례 쪽번호(' + r.model.front.toc.length + '줄)는 글자입니다. 인디자인에서 쪽이 달라지면 직접 고치세요.']);
       if(I.warnImg) rows.push(['warn', '확인', '실제 해상도가 200ppi 미만인 그림이 ' + I.warnImg + '장 있습니다(검수목록 참고).']);
       r.model.notes.forEach(x => rows.push(['info', '참고', x])); list.innerHTML = rows.map(([st, lb, x]) => li(st, lb, esc(x))).join(''); }
